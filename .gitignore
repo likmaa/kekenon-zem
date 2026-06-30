@@ -45,3 +45,5 @@ yarn-error.*
 # Credentials & secrets
 credentials.json
 *keystore-credentials*
+google-services.json
+GoogleService-Info.plist
