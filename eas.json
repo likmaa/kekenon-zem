@@ -1,0 +1,69 @@
+{
+  "cli": {
+    "version": ">= 5.0.0",
+    "appVersionSource": "local"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": {
+        "APP_VARIANT": "development"
+      },
+      "android": {
+        "gradleCommand": ":app:assembleDebug"
+      },
+      "ios": {
+        "buildConfiguration": "Debug"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "env": {
+        "APP_VARIANT": "production",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true",
+        "EXPO_PUBLIC_API_URL": "https://api.kekenon.com/api",
+        "EXPO_PUBLIC_PUSHER_KEY": "079f17cc246e8801f83f1e7efc931cf6",
+        "EXPO_PUBLIC_PUSHER_HOST": "ws.kekenon.com",
+        "EXPO_PUBLIC_PUSHER_PORT": "443",
+        "EXPO_PUBLIC_PUSHER_CLUSTER": "mt1",
+        "EXPO_PUBLIC_PUSHER_TLS": "true",
+        "EXPO_PUBLIC_SENTRY_DSN": "https://f30f16b8a73c82f88be978adf2cf8f9e@o4511316863025152.ingest.us.sentry.io/4511316896841728"
+      },
+      "android": {
+        "buildType": "apk"
+      },
+      "ios": {
+        "simulator": true
+      }
+    },
+    "production": {
+      "env": {
+        "APP_VARIANT": "production",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true",
+        "EXPO_PUBLIC_API_URL": "https://api.kekenon.com/api",
+        "EXPO_PUBLIC_PUSHER_KEY": "079f17cc246e8801f83f1e7efc931cf6",
+        "EXPO_PUBLIC_PUSHER_HOST": "ws.kekenon.com",
+        "EXPO_PUBLIC_PUSHER_PORT": "443",
+        "EXPO_PUBLIC_PUSHER_CLUSTER": "mt1",
+        "EXPO_PUBLIC_PUSHER_TLS": "true",
+        "EXPO_PUBLIC_SENTRY_DSN": "https://f30f16b8a73c82f88be978adf2cf8f9e@o4511316863025152.ingest.us.sentry.io/4511316896841728"
+      },
+      "android": {
+        "buildType": "apk"
+      },
+      "ios": {
+        "image": "latest"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "android": {
+        "serviceAccountKeyPath": "./google-service-account.json",
+        "track": "production"
+      },
+      "ios": {}
+    }
+  }
+}

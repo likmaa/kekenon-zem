@@ -1,0 +1,29 @@
+diff --git a/node_modules/expo-location/android/src/main/java/expo/modules/location/taskConsumers/LocationTaskConsumer.kt b/node_modules/expo-location/android/src/main/java/expo/modules/location/taskConsumers/LocationTaskConsumer.kt
+index e659285..be09da7 100644
+--- a/node_modules/expo-location/android/src/main/java/expo/modules/location/taskConsumers/LocationTaskConsumer.kt
++++ b/node_modules/expo-location/android/src/main/java/expo/modules/location/taskConsumers/LocationTaskConsumer.kt
+@@ -88,9 +88,21 @@ class LocationTaskConsumer(context: Context, taskManagerUtils: TaskManagerUtilsI
+     } else {
+       try {
+         mLocationClient.lastLocation.addOnCompleteListener { task ->
+-          task.result?.let {
+-            deferLocations(listOf(it))
+-            maybeReportDeferredLocations()
++          // Guard: ne pas accéder à task.result si la tâche a échoué.
++          // Quand Google Play Services se déconnecte (ApiException 20), task.result
++          // lève une RuntimeExecutionException qui crashait l'app (fréquent sur
++          // appareils budget qui tuent les services en arrière-plan).
++          if (task.isSuccessful) {
++            try {
++              task.result?.let {
++                deferLocations(listOf(it))
++                maybeReportDeferredLocations()
++              }
++            } catch (e: Exception) {
++              Log.e(TAG, "Cannot read last location result: " + e.message)
++            }
++          } else {
++            Log.e(TAG, "Last location task failed: " + (task.exception?.message ?: "unknown"))
+           }
+         }
+       } catch (e: SecurityException) {
