@@ -1,4 +1,4 @@
-// font.ts — Registre des polices Kêkênon Chauffeur (Rajdhani)
+// font.ts — Registre des polices Kêkênon Zem (Rajdhani)
 export const Fonts = {
   light: 'Rajdhani-Light',
   regular: 'Rajdhani-Regular',
@@ -6,7 +6,7 @@ export const Fonts = {
   semiBold: 'Rajdhani-SemiBold',
   bold: 'Rajdhani-Bold',
 
-  // Alias de compatibilité avec l'ancien code Titillium Web
+  // Alias de compatibilité (ancien code) — pointent tous vers Rajdhani
   titilliumWeb: 'Rajdhani-Regular',
   titilliumWebBold: 'Rajdhani-Bold',
   titilliumWebSemiBold: 'Rajdhani-SemiBold',

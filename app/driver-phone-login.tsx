@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -13,11 +13,13 @@ import {
   Image,
   ActivityIndicator,
   Linking,
+  Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Haptics from 'expo-haptics';
 import { setAuthToken } from './utils/authTokenStorage';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../theme';
@@ -39,6 +41,7 @@ export default function DriverPhoneLoginScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [inputFocused, setInputFocused] = useState(false);
+  const phoneInputRef = useRef<TextInput>(null);
 
   const handleBack = useCallback(() => {
     if (router.canGoBack()) {
@@ -143,7 +146,36 @@ export default function DriverPhoneLoginScreen() {
           if (json.user) {
             await AsyncStorage.setItem('authUser', JSON.stringify(json.user));
           }
-          router.replace('/(tabs)' as const);
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          
+          try {
+            const profileRes = await apiFetch('/driver/profile', {
+              method: 'GET',
+              headers: { Accept: 'application/json' },
+            });
+            if (!profileRes || !profileRes.ok) {
+              router.replace('/become-driver');
+              return;
+            }
+            const profileJson = await profileRes.json().catch(() => null);
+            if (!profileJson?.profile) {
+              router.replace('/become-driver');
+              return;
+            }
+
+            const status = profileJson.profile.status;
+            const contractAcceptedAt = profileJson.profile.contract_accepted_at;
+            const role = profileJson.role;
+            const licenseNumber = profileJson.profile.license_number;
+
+            if (status === 'pending' && !licenseNumber) router.replace('/become-driver');
+            else if (status === 'pending') router.replace('/driver-pending-approval');
+            else if (status === 'rejected') router.replace('/driver-application-rejected');
+            else if (status === 'approved' && role === 'driver' && contractAcceptedAt) router.replace('/(tabs)' as any);
+            else router.replace('/driver-contract');
+          } catch {
+            router.replace('/(tabs)' as any);
+          }
           return;
         } catch {
           /* ignore */
@@ -161,6 +193,7 @@ export default function DriverPhoneLoginScreen() {
         return;
       }
 
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       router.push({
         pathname: '/driver-login-otp',
         params: { phone: cleanedPhone, otpKey },
@@ -174,9 +207,14 @@ export default function DriverPhoneLoginScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
           <View style={styles.innerContainer}>
+            
+            {/* Header Back Button */}
             <View style={[styles.backRow, { top: Math.max(insets.top, 8) + 4 }]}>
               <TouchableOpacity
                 style={styles.backButton}
@@ -185,7 +223,7 @@ export default function DriverPhoneLoginScreen() {
                 accessibilityLabel="Retour"
                 hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
               >
-                <Ionicons name="chevron-back" size={22} color="#1e293b" />
+                <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
               </TouchableOpacity>
             </View>
 
@@ -199,15 +237,24 @@ export default function DriverPhoneLoginScreen() {
               showsVerticalScrollIndicator={false}
             >
               <View style={styles.centerColumn}>
+                
+                {/* Brand stacked Logo */}
                 <View style={styles.logoWrap}>
                   <Image
-                    source={require('../assets/images/LOGO_OR.png')}
-                    style={styles.logo}
-                    resizeMode="contain"
-                    accessibilityLabel="Kêkênon"
+                    source={require('../assets/images/logo_cabin.png')}
+                    style={styles.logoCabin}
+                  />
+                  <Image
+                    source={require('../assets/images/logo_wheels.png')}
+                    style={styles.logoWheels}
+                  />
+                  <Image
+                    source={require('../assets/images/logo_text.png')}
+                    style={styles.logoText}
                   />
                 </View>
 
+                {/* Title & subtitle */}
                 <View style={styles.headerSection}>
                   <Text style={styles.title}>Connexion chauffeur</Text>
                   <Text style={styles.subtitle}>
@@ -215,7 +262,12 @@ export default function DriverPhoneLoginScreen() {
                   </Text>
                 </View>
 
-                <View
+                {/* Input Label */}
+                <Text style={styles.inputLabel}>Numéro de téléphone</Text>
+
+                {/* Phone Input Card */}
+                <Pressable
+                  onPress={() => phoneInputRef.current?.focus()}
                   style={[
                     styles.inputCard,
                     inputFocused && !hasError && styles.inputCardFocused,
@@ -229,6 +281,7 @@ export default function DriverPhoneLoginScreen() {
                     <Text style={styles.countryCode}>+229</Text>
                   </View>
                   <TextInput
+                    ref={phoneInputRef}
                     placeholder="01 97 23 45 67"
                     value={phone}
                     onChangeText={handlePhoneChange}
@@ -236,16 +289,17 @@ export default function DriverPhoneLoginScreen() {
                     onBlur={() => setInputFocused(false)}
                     keyboardType="number-pad"
                     style={styles.input}
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor="#9E9E9E"
                     maxLength={14}
                     returnKeyType="done"
                     onSubmitEditing={() => {
                       if (!loading) void sendOTP();
                     }}
-                    accessibilityLabel="Numéro de téléphone sans indicatif"
+                    accessibilityLabel="Numéro de téléphone"
                   />
-                </View>
+                </Pressable>
 
+                {/* Error Banner */}
                 {error ? (
                   <View style={styles.errorBanner}>
                     <Ionicons name="alert-circle-outline" size={18} color={Colors.error} style={styles.errorIcon} />
@@ -253,19 +307,21 @@ export default function DriverPhoneLoginScreen() {
                   </View>
                 ) : null}
 
+                {/* Action Button */}
                 <View style={styles.footer}>
                   <TouchableOpacity
-                    style={[styles.button, (loading || !isPhoneValid) && styles.buttonDisabled]}
+                    style={[styles.button, loading && styles.buttonDisabled]}
                     onPress={() => void sendOTP()}
-                    disabled={loading || !isPhoneValid}
+                    disabled={loading}
                     activeOpacity={0.88}
                     accessibilityRole="button"
-                    accessibilityState={{ disabled: loading || !isPhoneValid }}
+                    accessibilityLabel="Continuer"
+                    accessibilityState={{ disabled: loading }}
                   >
                     {loading ? (
                       <View style={styles.buttonInner}>
-                        <ActivityIndicator color="#fff" size="small" />
-                        <Text style={[styles.buttonText, styles.buttonTextLoading]}>Envoi…</Text>
+                        <ActivityIndicator color="#1A1A1A" size="small" />
+                        <Text style={[styles.buttonText, styles.buttonTextLoading]}>Envoi en cours…</Text>
                       </View>
                     ) : (
                       <Text style={styles.buttonText}>Continuer</Text>
@@ -273,18 +329,21 @@ export default function DriverPhoneLoginScreen() {
                   </TouchableOpacity>
                 </View>
 
+                {/* CGU & Privacy */}
                 <View style={styles.legalRow}>
                   <TouchableOpacity onPress={() => void openExternalUrl(LEGAL_CGU)} accessibilityRole="link">
-                    <Text style={styles.legalLink}>CGU</Text>
+                    <Text style={styles.legalLink}>Conditions d'Utilisation</Text>
                   </TouchableOpacity>
                   <Text style={styles.legalSep}>·</Text>
                   <TouchableOpacity onPress={() => void openExternalUrl(LEGAL_PRIVACY)} accessibilityRole="link">
                     <Text style={styles.legalLink}>Confidentialité</Text>
                   </TouchableOpacity>
                 </View>
+
               </View>
             </ScrollView>
 
+            {/* Bottom Support Dock */}
             <View style={[styles.bottomDock, { paddingBottom: Math.max(insets.bottom, 14) }]}>
               <View style={styles.bottomLinksInner}>
                 <TouchableOpacity
@@ -294,7 +353,7 @@ export default function DriverPhoneLoginScreen() {
                   accessibilityLabel="Revoir l’introduction"
                 >
                   <View style={styles.bottomLinkInnerLeft}>
-                    <Ionicons name="play-outline" size={17} color={Colors.primary} />
+                    <Ionicons name="play-outline" size={17} color="#212121" />
                     <Text style={styles.bottomLinkText} numberOfLines={2}>
                       Revoir l’introduction
                     </Text>
@@ -316,11 +375,12 @@ export default function DriverPhoneLoginScreen() {
                     <Text style={[styles.bottomLinkText, styles.bottomLinkTextRight]} numberOfLines={2}>
                       Besoin d’aide ?
                     </Text>
-                    <Ionicons name="help-circle-outline" size={18} color={Colors.primary} />
+                    <Ionicons name="help-circle-outline" size={18} color="#212121" />
                   </View>
                 </TouchableOpacity>
               </View>
             </View>
+
           </View>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
@@ -331,7 +391,7 @@ export default function DriverPhoneLoginScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F1F4FB',
+    backgroundColor: '#FFFFFF',
   },
   container: {
     flex: 1,
@@ -339,6 +399,7 @@ const styles = StyleSheet.create({
   innerContainer: {
     flex: 1,
     paddingHorizontal: 24,
+    backgroundColor: '#FFFFFF',
   },
   scrollView: {
     flex: 1,
@@ -349,9 +410,7 @@ const styles = StyleSheet.create({
     paddingTop: 56,
   },
   bottomDock: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#E2E8F0',
-    backgroundColor: '#F1F4FB',
+    backgroundColor: '#FFFFFF',
     paddingTop: 12,
     width: '100%',
     alignSelf: 'stretch',
@@ -381,15 +440,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E0E0E0',
     ...Platform.select({
       ios: {
-        shadowColor: '#0f172a',
+        shadowColor: '#000',
         shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.06,
+        shadowOpacity: 0.05,
         shadowRadius: 3,
       },
-      android: { elevation: 2 },
+      android: { elevation: 1 },
     }),
   },
   centerColumn: {
@@ -402,60 +461,72 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 28,
   },
-  logo: {
-    width: 168,
-    height: 56,
+  logoCabin: {
+    width: 130,
+    height: 122,
+    resizeMode: 'contain',
+  },
+  logoWheels: {
+    width: 86,
+    height: 29,
+    resizeMode: 'contain',
+    marginTop: 7,
+    marginBottom: 25,
+  },
+  logoText: {
+    width: 144,
+    height: 27,
+    resizeMode: 'contain',
   },
   headerSection: {
     marginBottom: 28,
     alignItems: 'center',
   },
   title: {
-    fontFamily: Fonts.titilliumWebBold,
-    fontSize: 22,
-    color: '#0f172a',
-    marginBottom: 12,
+    fontFamily: Fonts.bold,
+    fontSize: 24,
+    color: '#212121',
+    marginBottom: 8,
     textAlign: 'center',
-    letterSpacing: -0.2,
+    letterSpacing: -0.3,
   },
   subtitle: {
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     fontSize: 16,
-    color: '#64748B',
+    color: '#9E9E9E',
     lineHeight: 24,
     textAlign: 'center',
     maxWidth: 360,
     alignSelf: 'center',
+  },
+  inputLabel: {
+    fontFamily: Fonts.semiBold,
+    fontSize: 14,
+    color: '#212121',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   inputCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderColor: '#E0E0E0',
     borderRadius: 14,
     paddingVertical: 4,
     paddingHorizontal: 12,
     minHeight: 60,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#0f172a',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 8,
-      },
-      android: { elevation: 2 },
-    }),
   },
   inputCardFocused: {
     borderColor: Colors.primary,
     ...Platform.select({
       ios: {
         shadowColor: Colors.primary,
-        shadowOpacity: 0.12,
-        shadowRadius: 10,
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
       },
-      android: { elevation: 3 },
+      android: { elevation: 1 },
     }),
   },
   inputCardError: {
@@ -468,13 +539,13 @@ const styles = StyleSheet.create({
     marginRight: 4,
     paddingRight: 10,
     borderRightWidth: 1,
-    borderRightColor: '#E2E8F0',
+    borderRightColor: '#E0E0E0',
   },
   inputFlagCircle: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F5F5F5',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 8,
@@ -484,15 +555,15 @@ const styles = StyleSheet.create({
   },
   countryCode: {
     fontSize: 17,
-    fontFamily: Fonts.titilliumWebBold,
-    color: '#0f172a',
+    fontFamily: Fonts.bold,
+    color: '#212121',
     minWidth: 44,
   },
   input: {
     flex: 1,
     fontSize: 18,
-    fontFamily: Fonts.titilliumWeb,
-    color: '#0f172a',
+    fontFamily: Fonts.regular,
+    color: '#212121',
     letterSpacing: 1.5,
     paddingVertical: 12,
     paddingHorizontal: 4,
@@ -515,7 +586,7 @@ const styles = StyleSheet.create({
     flex: 1,
     color: '#B91C1C',
     fontSize: 14,
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     lineHeight: 20,
   },
   footer: {
@@ -525,22 +596,27 @@ const styles = StyleSheet.create({
   button: {
     backgroundColor: Colors.primary,
     paddingVertical: 16,
-    borderRadius: 14,
+    borderTopLeftRadius: 16,
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
+    borderTopRightRadius: 0,
     alignItems: 'center',
     justifyContent: 'center',
     width: '100%',
     minHeight: 56,
-    shadowColor: Colors.primary,
-    shadowOpacity: 0.28,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 12,
-    elevation: 6,
+    ...Platform.select({
+      ios: {
+        shadowColor: Colors.primary,
+        shadowOpacity: 0.15,
+        shadowOffset: { width: 0, height: 4 },
+        shadowRadius: 10,
+      },
+      android: { elevation: 2 },
+    }),
   },
   buttonDisabled: {
-    backgroundColor: '#94A3B8',
-    shadowOpacity: 0,
-    elevation: 0,
-    opacity: 0.72,
+    backgroundColor: '#BDBDBD',
+    opacity: 0.7,
   },
   buttonInner: {
     flexDirection: 'row',
@@ -548,12 +624,13 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   buttonText: {
-    color: '#FFF',
-    fontFamily: Fonts.titilliumWebBold,
+    color: '#1A1A1A',
+    fontFamily: Fonts.bold,
     fontSize: 17,
   },
   buttonTextLoading: {
     marginLeft: 4,
+    color: '#1A1A1A',
   },
   legalRow: {
     flexDirection: 'row',
@@ -563,15 +640,15 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   legalLink: {
-    fontFamily: Fonts.titilliumWebSemiBold,
+    fontFamily: Fonts.semiBold,
     fontSize: 14,
-    color: Colors.primary,
+    color: '#757575',
     textDecorationLine: 'underline',
   },
   legalSep: {
     marginHorizontal: 10,
     fontSize: 14,
-    color: '#94A3B8',
+    color: '#BDBDBD',
   },
   bottomLinkLeft: {
     flex: 1,
@@ -597,9 +674,9 @@ const styles = StyleSheet.create({
   },
   bottomLinkText: {
     flexShrink: 1,
-    fontFamily: Fonts.titilliumWebSemiBold,
+    fontFamily: Fonts.semiBold,
     fontSize: 13,
-    color: Colors.primary,
+    color: '#212121',
     textAlign: 'left',
   },
   bottomLinkTextRight: {

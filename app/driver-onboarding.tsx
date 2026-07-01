@@ -19,22 +19,36 @@ import { Ionicons } from '@expo/vector-icons';
 
 const { height: SCREEN_H } = Dimensions.get('window');
 
-const DRIVER_ONBOARDING_IMG = require('../assets/onboarding-tic-driver.png');
-
 const ORANGE = Colors.secondary;
 
 const SLIDES = [
   {
     key: 'pillar',
     lineWhite: 'Devenez le pilier',
-    lineOrange: 'du développement urbain.',
-    sub: 'de la ville de Porto-Novo.',
+    lineOrange: 'du transport local.',
+    sub: 'Rejoignez le premier réseau de Zems et de conducteurs indépendants.',
+    image: require('../assets/images/img1.webp'),
   },
   {
     key: 'platform',
     lineWhite: 'Des courses en direct,',
     lineOrange: 'vos gains sous contrôle.',
     sub: 'Activez la localisation pour recevoir les demandes à proximité et rejoindre le réseau.',
+    image: require('../assets/images/img2.webp'),
+  },
+  {
+    key: 'pricing',
+    lineWhite: 'Négociez vos tarifs',
+    lineOrange: 'avec les passagers.',
+    sub: 'Proposez vos prix en direct et trouvez un accord rapidement pour chaque trajet.',
+    image: require('../assets/images/img3.webp'),
+  },
+  {
+    key: 'subscription',
+    lineWhite: 'Conservez 100% de vos gains,',
+    lineOrange: 'sans commissions.',
+    sub: 'Abonnez-vous pour recevoir des offres et gardez la totalité de ce que vous gagnez.',
+    image: require('../assets/images/img4.webp'),
   },
 ] as const;
 
@@ -77,10 +91,10 @@ export default function DriverOnboardingScreen() {
 
       {/* Photo plein écran */}
       <Image
-        source={DRIVER_ONBOARDING_IMG}
+        source={slide.image}
         style={styles.fullBleedImage}
         resizeMode="cover"
-        accessibilityLabel="Chauffeur Kêkênon au volant d’un taxi"
+        accessibilityLabel="Visuel de présentation Kêkênon"
       />
 
       {/* Assombrissement + renfort haut pour le texte */}
@@ -184,19 +198,19 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.12)',
   },
   skip: {
-    fontFamily: Fonts.titilliumWebSemiBold,
+    fontFamily: Fonts.semiBold,
     fontSize: 13,
     color: 'rgba(255,255,255,0.7)',
     letterSpacing: 1.2,
   },
   pageIndicator: {
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     fontSize: 13,
     color: 'rgba(255,255,255,0.55)',
     marginBottom: 14,
   },
   headlineWhite: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 34,
     lineHeight: 40,
     color: Colors.white,
@@ -206,7 +220,7 @@ const styles = StyleSheet.create({
     textShadowRadius: 8,
   },
   headlineOrange: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 34,
     lineHeight: 40,
     color: ORANGE,
@@ -223,7 +237,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   subtitle: {
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     fontSize: 16,
     lineHeight: 24,
     color: 'rgba(255,255,255,0.95)',
@@ -250,7 +264,7 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   footerCtaLabel: {
-    fontFamily: Fonts.titilliumWebSemiBold,
+    fontFamily: Fonts.semiBold,
     fontSize: 11,
     color: 'rgba(255,255,255,0.65)',
     letterSpacing: 2,

@@ -34,7 +34,7 @@ const KEY_POINTS: { icon: React.ComponentProps<typeof Ionicons>['name']; text: s
   },
   {
     icon: 'cash-outline',
-    text: 'Conditions de rémunération, commissions et usage de la plateforme Kêkênon.',
+    text: 'Conditions de rémunération et usage de la plateforme Kêkênon.',
   },
   {
     icon: 'lock-closed-outline',
@@ -154,13 +154,7 @@ export default function DriverContractScreen() {
 
   return (
     <View style={styles.root}>
-      <StatusBar barStyle="dark-content" />
-      <LinearGradient
-        colors={['#E8ECFF', '#F2F5FF', Colors.background]}
-        locations={[0, 0.35, 1]}
-        style={StyleSheet.absoluteFill}
-        pointerEvents="none"
-      />
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
         <View style={[styles.header, { paddingTop: Math.max(insets.top, 8) - 8 }]}>
@@ -174,7 +168,7 @@ export default function DriverContractScreen() {
             <Ionicons name="chevron-back" size={26} color={Colors.black} />
           </TouchableOpacity>
           <Text style={styles.headerTitle} accessibilityRole="header">
-            Contrat chauffeur
+            Contrat conducteur
           </Text>
           <View style={styles.headerSpacer} />
         </View>
@@ -186,9 +180,9 @@ export default function DriverContractScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.heroCard}>
-            <LinearGradient colors={[...Gradients.primary]} style={styles.heroIcon}>
+            <View style={styles.heroSolid}>
               <Ionicons name="document-text" size={32} color={Colors.white} />
-            </LinearGradient>
+            </View>
             <View style={styles.heroTextCol}>
               <Text style={styles.heroTitle}>Convention Kêkênon</Text>
               <Text style={styles.heroSub}>
@@ -205,7 +199,7 @@ export default function DriverContractScreen() {
                 style={[styles.pointRow, index < KEY_POINTS.length - 1 && styles.pointRowBorder]}
               >
                 <View style={styles.pointIcon}>
-                  <Ionicons name={item.icon} size={20} color={Colors.primary} />
+                  <Ionicons name={item.icon} size={20} color="#37BD6B" />
                 </View>
                 <Text style={styles.pointText}>{item.text}</Text>
               </View>
@@ -228,7 +222,7 @@ export default function DriverContractScreen() {
                 accessibilityRole="link"
                 accessibilityLabel="Ouvrir les conditions générales d utilisation"
               >
-                <Ionicons name="open-outline" size={16} color={Colors.primary} />
+                <Ionicons name="open-outline" size={16} color="#37BD6B" />
                 <Text style={styles.linkChipText}>CGU</Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -237,7 +231,7 @@ export default function DriverContractScreen() {
                 accessibilityRole="link"
                 accessibilityLabel="Ouvrir la politique de confidentialité"
               >
-                <Ionicons name="open-outline" size={16} color={Colors.primary} />
+                <Ionicons name="open-outline" size={16} color="#37BD6B" />
                 <Text style={styles.linkChipText}>Confidentialité</Text>
               </TouchableOpacity>
             </View>
@@ -256,11 +250,11 @@ export default function DriverContractScreen() {
             accessibilityLabel="Accepter le contrat et accéder à l application"
           >
             {accepting ? (
-              <ActivityIndicator color={Colors.white} />
+              <ActivityIndicator color="#1A1A1A" />
             ) : (
               <>
                 <Text style={styles.acceptBtnText}>J&apos;accepte le contrat</Text>
-                <Ionicons name="arrow-forward" size={22} color={Colors.white} />
+                <Ionicons name="arrow-forward" size={22} color="#1A1A1A" />
               </>
             )}
           </TouchableOpacity>
@@ -273,7 +267,7 @@ export default function DriverContractScreen() {
             accessibilityRole="button"
             accessibilityLabel="Se déconnecter pour utiliser un autre numéro"
           >
-            <Ionicons name="call-outline" size={18} color={Colors.primary} />
+            <Ionicons name="call-outline" size={18} color="#37BD6B" />
             <Text style={styles.secondaryBtnText}>Utiliser un autre numéro</Text>
           </TouchableOpacity>
         </View>
@@ -285,7 +279,7 @@ export default function DriverContractScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: '#FFFFFF',
   },
   safe: {
     flex: 1,
@@ -304,7 +298,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     flex: 1,
     textAlign: 'center',
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 18,
     color: Colors.black,
     letterSpacing: -0.2,
@@ -333,20 +327,12 @@ const styles = StyleSheet.create({
     marginBottom: 22,
     borderWidth: 1,
     borderColor: Colors.border,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 3 },
-    }),
   },
-  heroIcon: {
+  heroSolid: {
     width: 56,
     height: 56,
     borderRadius: 16,
+    backgroundColor: '#37BD6B',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -354,19 +340,19 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   heroTitle: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 17,
     color: Colors.black,
     marginBottom: 6,
   },
   heroSub: {
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     fontSize: 13,
     color: Colors.gray,
     lineHeight: 19,
   },
   sectionLabel: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 12,
     color: Colors.mediumGray,
     textTransform: 'uppercase',
@@ -381,15 +367,6 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     marginBottom: 20,
     overflow: 'hidden',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.04,
-        shadowRadius: 8,
-      },
-      android: { elevation: 2 },
-    }),
   },
   pointRow: {
     flexDirection: 'row',
@@ -406,14 +383,14 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: 'rgba(54, 80, 208, 0.1)',
+    backgroundColor: 'rgba(55, 189, 107, 0.1)', // Light green
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 2,
   },
   pointText: {
     flex: 1,
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     fontSize: 14,
     color: Colors.black,
     lineHeight: 21,
@@ -427,7 +404,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   legalParagraph: {
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     fontSize: 14,
     color: Colors.gray,
     lineHeight: 22,
@@ -446,19 +423,19 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 999,
-    backgroundColor: 'rgba(54, 80, 208, 0.08)',
+    backgroundColor: 'rgba(55, 189, 107, 0.08)',
   },
   linkChipText: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 13,
-    color: Colors.primaryDark,
+    color: '#37BD6B',
   },
   footer: {
     paddingHorizontal: 22,
     paddingTop: 10,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: Colors.border,
-    backgroundColor: Colors.background,
+    backgroundColor: '#FFFFFF',
     gap: 12,
   },
   acceptBtn: {
@@ -466,26 +443,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    backgroundColor: Colors.primary,
+    backgroundColor: '#FDD835',
     paddingVertical: 16,
     borderRadius: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: Colors.primary,
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.32,
-        shadowRadius: 10,
-      },
-      android: { elevation: 6 },
-    }),
   },
   acceptBtnDisabled: {
     opacity: 0.75,
   },
   acceptBtnText: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 16,
-    color: Colors.white,
+    color: '#1A1A1A',
   },
   secondaryBtn: {
     flexDirection: 'row',
@@ -495,11 +463,11 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: Colors.primary,
+    borderColor: '#37BD6B',
   },
   secondaryBtnText: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 14,
-    color: Colors.primary,
+    color: '#37BD6B',
   },
 });

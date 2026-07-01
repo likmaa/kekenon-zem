@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   headerTitle: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 18,
     color: Colors.black,
   },
@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
 
   title: {
     textAlign: 'center',
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 22,
     color: Colors.black,
     marginBottom: 10,
@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
 
   subtitle: {
     textAlign: 'center',
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     fontSize: 15,
     color: Colors.gray,
     lineHeight: 22,
@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
   },
 
   primaryText: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 16,
     color: 'white',
   },

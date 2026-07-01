@@ -116,14 +116,6 @@ export default function DriverLocationPermissionScreen() {
 
   return (
     <View style={styles.root}>
-      <LinearGradient colors={[...GRADIENT_STOPS]} locations={[0, 0.42, 1]} style={StyleSheet.absoluteFill} />
-
-      <View style={[styles.decorLayer, { paddingTop: decorPadTop }]} pointerEvents="none">
-        <View style={[styles.decorRing, styles.decorRingOuter]} />
-        <View style={[styles.decorRing, styles.decorRingMid]} />
-        <View style={[styles.decorRing, styles.decorRingInner]} />
-      </View>
-
       <View
         style={[
           styles.column,
@@ -140,7 +132,7 @@ export default function DriverLocationPermissionScreen() {
           accessibilityRole="button"
           accessibilityLabel="Retour"
         >
-          <Ionicons name="chevron-back" size={24} color={Colors.white} />
+          <Ionicons name="chevron-back" size={24} color="#1A1A1A" />
         </TouchableOpacity>
 
         <View style={styles.middle}>
@@ -173,7 +165,7 @@ export default function DriverLocationPermissionScreen() {
             {REASONS.map((r) => (
               <View key={r.title} style={styles.reasonCard}>
                 <View style={styles.reasonIcon}>
-                  <Ionicons name={r.icon} size={17} color={Colors.white} />
+                  <Ionicons name={r.icon} size={17} color="#1A1A1A" />
                 </View>
                 <View style={styles.reasonTextCol}>
                   <Text style={styles.reasonTitle} numberOfLines={1}>
@@ -186,7 +178,7 @@ export default function DriverLocationPermissionScreen() {
               </View>
             ))}
             <View style={styles.noteRow}>
-              <Ionicons name="information-circle-outline" size={15} color="rgba(255,255,255,0.45)" />
+              <Ionicons name="information-circle-outline" size={15} color="#9E9E9E" />
               <Text style={styles.note} numberOfLines={2}>
                 Position au premier plan uniquement (sauf si vous activez le suivi en arrière-plan plus tard).
               </Text>
@@ -206,7 +198,7 @@ export default function DriverLocationPermissionScreen() {
             <Text style={styles.ctaPrimaryText} numberOfLines={1}>
               {busy ? 'Patientez…' : 'Autoriser la localisation'}
             </Text>
-            <Ionicons name="location-outline" size={20} color={Colors.primary} />
+            <Ionicons name="location-outline" size={20} color="#1A1A1A" />
           </TouchableOpacity>
           <TouchableOpacity style={styles.ctaGhost} activeOpacity={0.85} onPress={handleSkip} accessibilityRole="button">
             <Text style={styles.ctaGhostText}>Plus tard</Text>
@@ -220,35 +212,7 @@ export default function DriverLocationPermissionScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: Colors.primaryDark,
-  },
-  decorLayer: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-  },
-  decorRing: {
-    position: 'absolute',
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
-  },
-  decorRingOuter: {
-    width: 260,
-    height: 260,
-    opacity: 0.35,
-  },
-  decorRingMid: {
-    width: 195,
-    height: 195,
-    borderColor: 'rgba(255,255,255,0.16)',
-    opacity: 0.45,
-  },
-  decorRingInner: {
-    width: 130,
-    height: 130,
-    borderColor: 'rgba(255,255,255,0.22)',
-    opacity: 0.55,
+    backgroundColor: '#FFFFFF',
   },
   column: {
     flex: 1,
@@ -260,11 +224,11 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: 'rgba(255,255,255,0.14)',
+    backgroundColor: '#F5F5F5',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.22)',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
     marginBottom: 6,
   },
   middle: {
@@ -296,28 +260,28 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   kicker: {
-    fontFamily: Fonts.titilliumWebSemiBold,
+    fontFamily: Fonts.semiBold,
     fontSize: 10,
     letterSpacing: 1.6,
-    color: 'rgba(255,255,255,0.48)',
+    color: '#757575',
     marginBottom: 4,
     textTransform: 'uppercase',
   },
   title: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 22,
     lineHeight: 26,
-    color: Colors.white,
+    color: '#1A1A1A',
     textAlign: 'center',
     marginBottom: 6,
     letterSpacing: -0.4,
     paddingHorizontal: 8,
   },
   subtitle: {
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     fontSize: 13,
     lineHeight: 18,
-    color: 'rgba(255,255,255,0.82)',
+    color: '#616161',
     textAlign: 'center',
     paddingHorizontal: 12,
   },
@@ -325,9 +289,9 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   sectionLabel: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 11,
-    color: 'rgba(255,255,255,0.48)',
+    color: '#757575',
     letterSpacing: 1,
     marginBottom: 8,
     textTransform: 'uppercase',
@@ -338,16 +302,16 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 10,
     borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: '#F5F5F5',
+    borderWidth: 1,
+    borderColor: '#EAEAEA',
     marginBottom: 6,
   },
   reasonIcon: {
     width: 34,
     height: 34,
     borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.14)',
+    backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,
@@ -357,16 +321,16 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   reasonTitle: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 13,
-    color: Colors.white,
+    color: '#1A1A1A',
     marginBottom: 2,
   },
   reasonBody: {
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     fontSize: 12,
     lineHeight: 15,
-    color: 'rgba(255,255,255,0.68)',
+    color: '#616161',
   },
   noteRow: {
     flexDirection: 'row',
@@ -377,34 +341,42 @@ const styles = StyleSheet.create({
   },
   note: {
     flex: 1,
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     fontSize: 11,
     lineHeight: 14,
-    color: 'rgba(255,255,255,0.45)',
+    color: '#9E9E9E',
     minWidth: 0,
   },
   footer: {
     paddingTop: 10,
     marginTop: 8,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(255,255,255,0.12)',
+    borderTopColor: '#E0E0E0',
   },
   ctaPrimary: {
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.primary,
     paddingVertical: 14,
-    borderRadius: 12,
+    borderTopLeftRadius: 16,
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
+    borderTopRightRadius: 0,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     gap: 8,
+    shadowColor: Colors.primary,
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 8,
+    elevation: 4,
   },
   ctaDisabled: {
     opacity: 0.65,
   },
   ctaPrimaryText: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 16,
-    color: Colors.primaryDark,
+    color: '#1A1A1A',
     flexShrink: 1,
   },
   ctaGhost: {
@@ -413,8 +385,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   ctaGhostText: {
-    fontFamily: Fonts.titilliumWebSemiBold,
+    fontFamily: Fonts.semiBold,
     fontSize: 14,
-    color: 'rgba(255,255,255,0.55)',
+    color: '#757575',
   },
 });

@@ -62,13 +62,7 @@ export default function DriverApprovedSuccessScreen() {
 
   return (
     <View style={styles.root}>
-      <StatusBar barStyle="dark-content" />
-      <LinearGradient
-        colors={['#DCFCE7', '#ECFDF5', Colors.background]}
-        locations={[0, 0.32, 1]}
-        style={StyleSheet.absoluteFill}
-        pointerEvents="none"
-      />
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
         <View style={[styles.header, { paddingTop: Math.max(insets.top, 8) - 8 }]}>
@@ -91,12 +85,12 @@ export default function DriverApprovedSuccessScreen() {
               },
             ]}
           >
-            <LinearGradient colors={[...Gradients.success]} style={styles.heroCircle}>
+            <View style={styles.heroCircle}>
               <Ionicons name="checkmark" size={52} color={Colors.white} />
-            </LinearGradient>
+            </View>
             <View style={styles.heroBadge}>
-              <Ionicons name="ribbon-outline" size={14} color={Colors.success} />
-              <Text style={styles.heroBadgeText}>Chauffeur partenaire</Text>
+              <Ionicons name="ribbon-outline" size={14} color="#37BD6B" />
+              <Text style={styles.heroBadgeText}>Conducteur partenaire</Text>
             </View>
           </Animated.View>
 
@@ -108,7 +102,7 @@ export default function DriverApprovedSuccessScreen() {
           >
             <Text style={styles.lead}>Bienvenue dans l&apos;équipe</Text>
             <Text style={styles.leadSub}>
-              Votre dossier a été accepté. Il ne reste plus qu&apos;à prendre connaissance du contrat chauffeur et à le
+              Votre dossier a été accepté. Il ne reste plus qu&apos;à prendre connaissance du contrat conducteur et à le
               valider pour accéder au tableau de bord et recevoir des courses.
             </Text>
 
@@ -116,23 +110,22 @@ export default function DriverApprovedSuccessScreen() {
               <Text style={styles.nextLabel}>Prochaine étape</Text>
               <View style={styles.nextRow}>
                 <View style={styles.nextIcon}>
-                  <Ionicons name="document-text-outline" size={24} color={Colors.primary} />
+                  <Ionicons name="document-text-outline" size={24} color="#37BD6B" />
                 </View>
                 <View style={styles.nextBody}>
-                  <Text style={styles.nextTitle}>Contrat chauffeur</Text>
+                  <Text style={styles.nextTitle}>Contrat conducteur</Text>
                   <Text style={styles.nextHint}>Lecture rapide puis signature pour activer votre accès.</Text>
                 </View>
-                <Ionicons name="chevron-forward" size={22} color={Colors.mediumGray} />
               </View>
             </View>
 
             <View style={styles.tipsGrid}>
               <View style={styles.tipChip}>
-                <Ionicons name="navigate-outline" size={18} color={Colors.primary} />
+                <Ionicons name="navigate-outline" size={18} color="#37BD6B" />
                 <Text style={styles.tipText}>Restez géolocalisé pour les offres</Text>
               </View>
               <View style={styles.tipChip}>
-                <Ionicons name="notifications-outline" size={18} color={Colors.primary} />
+                <Ionicons name="notifications-outline" size={18} color="#37BD6B" />
                 <Text style={styles.tipText}>Gardez les notifications activées</Text>
               </View>
             </View>
@@ -145,10 +138,10 @@ export default function DriverApprovedSuccessScreen() {
             activeOpacity={0.88}
             onPress={handleContinue}
             accessibilityRole="button"
-            accessibilityLabel="Continuer vers le contrat chauffeur"
+            accessibilityLabel="Continuer vers le contrat conducteur"
           >
             <Text style={styles.primaryBtnText}>Lire et signer le contrat</Text>
-            <Ionicons name="arrow-forward" size={22} color={Colors.white} />
+            <Ionicons name="arrow-forward" size={22} color="#1A1A1A" />
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -159,7 +152,7 @@ export default function DriverApprovedSuccessScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: '#FFFFFF',
   },
   safe: {
     flex: 1,
@@ -170,7 +163,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 20,
     color: Colors.black,
     letterSpacing: -0.3,
@@ -189,17 +182,9 @@ const styles = StyleSheet.create({
     width: 108,
     height: 108,
     borderRadius: 54,
+    backgroundColor: '#37BD6B',
     alignItems: 'center',
     justifyContent: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: Colors.success,
-        shadowOffset: { width: 0, height: 12 },
-        shadowOpacity: 0.35,
-        shadowRadius: 20,
-      },
-      android: { elevation: 12 },
-    }),
   },
   heroBadge: {
     flexDirection: 'row',
@@ -211,16 +196,16 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: Colors.white,
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.35)',
+    borderColor: 'rgba(55, 189, 107, 0.35)',
   },
   heroBadgeText: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 12,
     color: '#047857',
     letterSpacing: 0.2,
   },
   lead: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 26,
     color: Colors.black,
     textAlign: 'center',
@@ -228,7 +213,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
   leadSub: {
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     fontSize: 15,
     color: Colors.gray,
     textAlign: 'center',
@@ -242,18 +227,9 @@ const styles = StyleSheet.create({
     padding: 18,
     borderWidth: 1,
     borderColor: Colors.border,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.06,
-        shadowRadius: 12,
-      },
-      android: { elevation: 3 },
-    }),
   },
   nextLabel: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 12,
     color: Colors.mediumGray,
     textTransform: 'uppercase',
@@ -270,7 +246,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 14,
-    backgroundColor: 'rgba(54, 80, 208, 0.1)',
+    backgroundColor: 'rgba(55, 189, 107, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -278,13 +254,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   nextTitle: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 17,
     color: Colors.black,
     marginBottom: 4,
   },
   nextHint: {
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     fontSize: 13,
     color: Colors.gray,
     lineHeight: 18,
@@ -306,7 +282,7 @@ const styles = StyleSheet.create({
   },
   tipText: {
     flex: 1,
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     fontSize: 13,
     color: Colors.black,
     lineHeight: 18,
@@ -316,19 +292,19 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: Colors.border,
-    backgroundColor: Colors.background,
+    backgroundColor: '#FFFFFF',
   },
   primaryBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    backgroundColor: Colors.primary,
+    backgroundColor: '#FDD835',
     paddingVertical: 16,
     borderRadius: 16,
     ...Platform.select({
       ios: {
-        shadowColor: Colors.primary,
+        shadowColor: '#FDD835',
         shadowOffset: { width: 0, height: 6 },
         shadowOpacity: 0.35,
         shadowRadius: 10,
@@ -337,8 +313,8 @@ const styles = StyleSheet.create({
     }),
   },
   primaryBtnText: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 16,
-    color: Colors.white,
+    color: '#1A1A1A',
   },
 });

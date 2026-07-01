@@ -198,6 +198,7 @@ function RootLayoutNav() {
           <Stack.Screen name="driver-login-otp" options={{ headerShown: false }} />
           <Stack.Screen name="driver-existing-account" options={{ headerShown: false }} />
           <Stack.Screen name="driver-existing-details" options={{ headerShown: false }} />
+          <Stack.Screen name="become-driver" options={{ headerShown: false }} />
           <Stack.Screen name="driver-document-upload" options={{ headerShown: false }} />
           <Stack.Screen name="driver-pending-approval" options={{ headerShown: false }} />
           <Stack.Screen name="driver-approved-success" options={{ headerShown: false }} />

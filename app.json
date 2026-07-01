@@ -33,12 +33,12 @@
           "waze"
         ]
       },
-      "bundleIdentifier": "com.kekenon.driver"
+      "bundleIdentifier": "com.kekenon.zem"
     },
     "android": {
       "googleServicesFile": "./google-services.json",
       "versionCode": 9,
-      "package": "com.kekenon.driver",
+      "package": "com.kekenon.zem",
       "permissions": [
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION",
@@ -75,7 +75,18 @@
         }
       ],
       "expo-location",
-      "expo-font",
+      [
+        "expo-font",
+        {
+          "fonts": [
+            "./assets/fonts/Rajdhani-Light.ttf",
+            "./assets/fonts/Rajdhani-Regular.ttf",
+            "./assets/fonts/Rajdhani-Medium.ttf",
+            "./assets/fonts/Rajdhani-SemiBold.ttf",
+            "./assets/fonts/Rajdhani-Bold.ttf"
+          ]
+        }
+      ],
       "expo-notifications",
       [
         "expo-build-properties",
@@ -88,9 +99,11 @@
     ],
     "extra": {
       "mapboxToken": "${EXPO_PUBLIC_MAPBOX_TOKEN}",
-      "router": {},
+      "router": {
+        "origin": false
+      },
       "eas": {
-        "projectId": "596f8ecc-d83f-407a-91c2-6175f95b441c"
+        "projectId": "7ab14afb-1bd2-4e86-83ff-cf3852f007e8"
       }
     },
     "owner": "kekenon",

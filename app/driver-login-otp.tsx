@@ -1,4 +1,3 @@
-import { Ionicons } from '@expo/vector-icons';
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -6,7 +5,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   TextInput,
-  Alert,
   SafeAreaView,
   KeyboardAvoidingView,
   Platform,
@@ -14,40 +12,30 @@ import {
   Keyboard,
   ScrollView,
   ActivityIndicator,
+  Modal,
+  Alert,
+  Pressable,
+  Animated,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getAuthToken, setAuthToken } from './utils/authTokenStorage';
+import { BlurView } from 'expo-blur';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../theme';
 import { Fonts } from '../font';
 import { apiFetch, getApiBaseUrl } from './utils/apiClient';
+import { setAuthToken } from './utils/authTokenStorage';
 
 const CONTENT_MAX = 420;
-const AUTO_VERIFY_MS = 220;
-
-function paramStr(v: string | string[] | undefined): string {
-  if (v == null) return '';
-  return Array.isArray(v) ? v[0] : v;
-}
-
-function formatLocalDigits(digits: string): string {
-  const c = digits.replace(/\D/g, '');
-  let formatted = '';
-  for (let i = 0; i < c.length; i++) {
-    if (i > 0 && i % 2 === 0) formatted += ' ';
-    formatted += c[i];
-  }
-  return formatted;
-}
 
 function looksTechnicalMessage(s: string): boolean {
   const t = s.toLowerCase();
   return /exception|error:|fetch|network|undefined|kya|html|<\/?|stack|apikey|sql|json\.parse|status \d{3}/i.test(t);
 }
 
-function userFacingVerifyError(res: Response, json: unknown): string {
-  const j = json as Record<string, unknown> | null;
+function userFacingVerifyError(res: Response, json: any): string {
+  const j = json as Record<string, any> | null;
   const raw =
     (typeof j?.message === 'string' && j.message.trim()) ||
     (() => {
@@ -64,7 +52,7 @@ function userFacingVerifyError(res: Response, json: unknown): string {
   }
 
   if (res.status === 401 || res.status === 422) {
-    return "Ce code n'est pas bon ou n'est plus valide. Vérifiez les chiffres ou demandez un nouveau code.";
+    return 'Ce code n’est pas bon ou n’est plus valide. Vérifiez les chiffres ou demandez un nouveau code.';
   }
   if (res.status === 429) {
     return 'Trop de tentatives. Patientez un peu avant de réessayer.';
@@ -75,51 +63,33 @@ function userFacingVerifyError(res: Response, json: unknown): string {
   return 'Impossible de vérifier le code. Vérifiez votre connexion et réessayez.';
 }
 
-export default function DriverLoginOtpScreen() {
-  const params = useLocalSearchParams();
+export default function DriverLoginOTPScreen() {
+  const { phone: phoneParam, otpKey: initialOtpKey } = useLocalSearchParams();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const verifyingRef = useRef(false);
-  const autoVerifyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const phoneParam = paramStr(params.phone as string | string[] | undefined);
-  const initialOtpKey = paramStr(params.otpKey as string | string[] | undefined);
-
-  const [otp, setOtp] = useState(['', '', '', '', '', '']);
-  const inputs = useRef<(TextInput | null)[]>([]);
+  const [code, setCode] = useState('');
+  const inputRef = useRef<TextInput>(null);
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
-  const [resendLoading, setResendLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [resendNotice, setResendNotice] = useState<string | null>(null);
-  const [otpKey, setOtpKey] = useState<string>(initialOtpKey);
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  const [otpKey, setOtpKey] = useState<string>((initialOtpKey as string) || '');
   const [timeLeft, setTimeLeft] = useState(30);
   const [canResend, setCanResend] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendNotice, setResendNotice] = useState<string | null>(null);
 
-  const codeJoined = otp.join('');
-  const codeComplete = codeJoined.length === 6;
-
-  useEffect(() => {
-    if (!phoneParam) {
-      Alert.alert('Erreur', 'Numéro de téléphone manquant.');
-      router.back();
-    }
-  }, [phoneParam, router]);
+  const verifyingRef = useRef(false);
 
   useEffect(() => {
     if (timeLeft > 0) {
-      const timer = setTimeout(() => setTimeLeft((t) => t - 1), 1000);
+      const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
       return () => clearTimeout(timer);
     }
     setCanResend(true);
   }, [timeLeft]);
-
-  useEffect(() => {
-    if (resendNotice) {
-      const t = setTimeout(() => setResendNotice(null), 4000);
-      return () => clearTimeout(t);
-    }
-  }, [resendNotice]);
 
   const handleBack = useCallback(() => {
     if (router.canGoBack()) {
@@ -129,22 +99,93 @@ export default function DriverLoginOtpScreen() {
     router.replace('/driver-phone-login');
   }, [router]);
 
+  const formatLocalDigits = (raw: any): string => {
+    if (typeof raw !== 'string') return '';
+    const cleaned = raw.replace(/\s/g, '');
+    let formatted = '';
+    for (let i = 0; i < cleaned.length; i++) {
+      if (i > 0 && i % 2 === 0) formatted += ' ';
+      formatted += cleaned[i];
+    }
+    return formatted;
+  };
+
+  const sendOtp = async (isResend = false) => {
+    if (resendLoading || loading) return;
+    if (!getApiBaseUrl()) {
+      setError('URL API non configurée');
+      return;
+    }
+
+    const cleanedPhone = (phoneParam as string || '').replace(/\s/g, '');
+    const e164 = `+229${cleanedPhone}`;
+
+    try {
+      setResendLoading(true);
+      setError(null);
+      if (isResend) setResendNotice(null);
+
+      const res = await apiFetch('/auth/request-otp', {
+        method: 'POST',
+        skipAuth: true,
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({ phone: e164, force_new: isResend }),
+      });
+
+      if (!res || !res.ok) {
+        setError('Impossible d’envoyer un nouveau code.');
+        return;
+      }
+
+      const json = await res.json().catch(() => null);
+      if (!json) {
+        setError('Impossible d’envoyer un nouveau code.');
+        return;
+      }
+
+      if (json.otp_key) {
+        setOtpKey(json.otp_key as string);
+      }
+
+      setResendNotice('Un nouveau code a été envoyé par SMS.');
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Erreur réseau.';
+      setError(msg);
+    } finally {
+      setResendLoading(false);
+    }
+  };
+
+  const resendCode = async () => {
+    if (!canResend || resendLoading || loading) return;
+    setError(null);
+    setCode('');
+    setTimeLeft(30);
+    setCanResend(false);
+    inputRef.current?.focus();
+    await sendOtp(true);
+  };
+
   const handlePostLoginRouting = async (): Promise<string> => {
     try {
-      const token = await getAuthToken();
-      if (!token || !getApiBaseUrl()) return '/driver-onboarding';
-
       const res = await apiFetch('/driver/profile', {
         method: 'GET',
         headers: { Accept: 'application/json' },
       });
+      if (!res || !res.ok) return '/become-driver';
+      const json = await res.json().catch(() => null);
+      if (!json?.profile) return '/become-driver';
 
-      const json = await res?.json().catch(() => null);
-      if (!res || !res.ok || !json) return '/(tabs)';
+      const status = json.profile.status;
+      const contractAcceptedAt = json.profile.contract_accepted_at;
+      const role = json.role;
+      const licenseNumber = json.profile.license_number;
 
-      const status = json?.profile?.status as string | undefined;
-      const role = json?.user?.role as string | undefined;
-      const contractAcceptedAt = json?.profile?.contract_accepted_at as string | undefined;
+      // Un chauffeur 'pending' mais qui n'a pas encore rempli son profil doit le compléter
+      if (status === 'pending' && !licenseNumber) return '/become-driver';
 
       if (status === 'pending') return '/driver-pending-approval';
       if (status === 'rejected') return '/driver-application-rejected';
@@ -168,7 +209,7 @@ export default function DriverLoginOtpScreen() {
         return;
       }
 
-      const cleaned = phoneParam.replace(/\s/g, '');
+      const cleaned = (phoneParam as string || '').replace(/\s/g, '');
       const e164 = `+229${cleaned}`;
 
       verifyingRef.current = true;
@@ -200,8 +241,8 @@ export default function DriverLoginOtpScreen() {
         const json = await res.json().catch(() => null);
         if (!res.ok || !json) {
           setError(userFacingVerifyError(res, json));
-          setOtp(['', '', '', '', '', '']);
-          inputs.current[0]?.focus();
+          setCode('');
+          inputRef.current?.focus();
           return;
         }
 
@@ -229,7 +270,14 @@ export default function DriverLoginOtpScreen() {
           /* ignore */
         }
 
-        const targetPath = await handlePostLoginRouting();
+        // Show beautiful Success Modal
+        setShowSuccess(true);
+        
+        // Optimize: fetch routing while success animation plays
+        const targetPathPromise = handlePostLoginRouting();
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        
+        const targetPath = await targetPathPromise;
         router.replace(targetPath as never);
       } catch (e: unknown) {
         const raw = e instanceof Error ? e.message : '';
@@ -246,117 +294,14 @@ export default function DriverLoginOtpScreen() {
     [loading, otpKey, phoneParam, router],
   );
 
-  /** Soumission auto dès 6 chiffres (léger délai pour la saisie rapide). */
+  const codeJoined = code;
+  const codeComplete = code.length === 6;
+
   useEffect(() => {
-    if (!codeComplete || loading || resendLoading || !otpKey) return;
-    if (autoVerifyTimerRef.current) clearTimeout(autoVerifyTimerRef.current);
-    autoVerifyTimerRef.current = setTimeout(() => {
-      autoVerifyTimerRef.current = null;
+    if (codeComplete) {
       void verifyOTPWithCode(codeJoined);
-    }, AUTO_VERIFY_MS);
-    return () => {
-      if (autoVerifyTimerRef.current) {
-        clearTimeout(autoVerifyTimerRef.current);
-        autoVerifyTimerRef.current = null;
-      }
-    };
-  }, [codeComplete, codeJoined, loading, resendLoading, otpKey, verifyOTPWithCode]);
-
-  const sendOtp = async (forceNew: boolean) => {
-    const cleaned = phoneParam.replace(/\s/g, '');
-    if (!cleaned || !getApiBaseUrl()) {
-      setError('URL API non configurée');
-      return;
     }
-    const e164 = `+229${cleaned}`;
-
-    try {
-      setResendLoading(true);
-      setError(null);
-
-      const res = await apiFetch('/auth/request-otp', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-        skipAuth: true,
-        body: JSON.stringify({
-          phone: e164,
-          force_new: forceNew,
-        }),
-      });
-
-      if (!res) {
-        setError('URL API non configurée');
-        return;
-      }
-
-      const json = await res.json().catch(() => null);
-      if (!res || !res.ok || !json) {
-        const msg = (json && (json.message || json.error)) || "Impossible d'envoyer le code.";
-        setError(msg);
-        return;
-      }
-
-      if (json.otp_key) {
-        setOtpKey(json.otp_key as string);
-      }
-
-      setResendNotice('Un nouveau code a été envoyé par SMS.');
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'Erreur réseau.';
-      setError(msg);
-    } finally {
-      setResendLoading(false);
-    }
-  };
-
-  const resendCode = async () => {
-    if (!canResend || resendLoading || loading) return;
-    setError(null);
-    setOtp(['', '', '', '', '', '']);
-    setTimeLeft(30);
-    setCanResend(false);
-    inputs.current[0]?.focus();
-    await sendOtp(true);
-  };
-
-  const handleChange = (text: string, index: number) => {
-    setError(null);
-    if (text.length > 1) {
-      const sanitized = text.replace(/[^0-9]/g, '');
-      const newOtp = [...otp];
-      for (let i = 0; i < Math.min(sanitized.length, 6 - index); i++) {
-        newOtp[index + i] = sanitized[i];
-      }
-      setOtp(newOtp);
-      const nextIndex = Math.min(index + sanitized.length, 5);
-      if (nextIndex < 6) {
-        inputs.current[nextIndex]?.focus();
-      }
-      return;
-    }
-
-    if (/^[0-9]$/.test(text)) {
-      const newOtp = [...otp];
-      newOtp[index] = text;
-      setOtp(newOtp);
-      if (index < 5 && text) {
-        inputs.current[index + 1]?.focus();
-      }
-    } else if (text === '') {
-      const newOtp = [...otp];
-      newOtp[index] = '';
-      setOtp(newOtp);
-    }
-  };
-
-  const handleKeyPress = (e: { nativeEvent: { key: string } }, index: number) => {
-    if (e.nativeEvent.key === 'Backspace' && otp[index] === '' && index > 0) {
-      inputs.current[index - 1]?.focus();
-    }
-  };
+  }, [codeJoined, codeComplete, verifyOTPWithCode]);
 
   const displayPhone = phoneParam ? `+229 ${formatLocalDigits(phoneParam)}` : '';
 
@@ -369,6 +314,8 @@ export default function DriverLoginOtpScreen() {
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
           <View style={styles.inner}>
+            
+            {/* Header Back Button */}
             <View style={[styles.backRow, { top: Math.max(insets.top, 8) + 4 }]}>
               <TouchableOpacity
                 style={styles.backButton}
@@ -377,7 +324,7 @@ export default function DriverLoginOtpScreen() {
                 accessibilityLabel="Retour"
                 hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
               >
-                <Ionicons name="chevron-back" size={22} color="#1e293b" />
+                <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
               </TouchableOpacity>
             </View>
 
@@ -390,15 +337,11 @@ export default function DriverLoginOtpScreen() {
               showsVerticalScrollIndicator={false}
             >
               <View style={styles.column}>
-                <View style={styles.kickerPill}>
-                  <Ionicons name="chatbox-ellipses-outline" size={14} color={Colors.primary} />
-                  <Text style={styles.kickerText}>SMS</Text>
-                </View>
-                <Text style={styles.title}>Code de vérification</Text>
+                <Text style={styles.title}>Vérifiez votre téléphone</Text>
 
                 <Text style={styles.desc}>
-                  Saisissez le code à 6 chiffres envoyé au numéro suivant : {' '}
-                  <Text style={styles.phoneHighlight}>{displayPhone}</Text>
+                  Saisissez le code à 6 chiffres envoyé au numéro suivants :{' '}
+                  <Text style={styles.phoneHighlight}>{displayPhone}</Text>.
                 </Text>
 
                 {resendNotice ? (
@@ -415,32 +358,45 @@ export default function DriverLoginOtpScreen() {
                   </View>
                 ) : null}
 
-                <View style={styles.otpContainer}>
-                  {otp.map((digit, index) => (
-                    <TextInput
-                      key={index}
-                      ref={(ref) => {
-                        inputs.current[index] = ref;
-                      }}
-                      style={[styles.otpInput, focusedIndex === index && styles.otpInputFocused]}
-                      keyboardType="number-pad"
-                      textContentType={index === 0 ? 'oneTimeCode' : 'none'}
-                      autoComplete={index === 0 ? 'sms-otp' : undefined}
-                      maxLength={index === 0 ? 6 : 1}
-                      value={digit}
-                      onChangeText={(text) => handleChange(text, index)}
-                      onKeyPress={(e) => handleKeyPress(e, index)}
-                      onFocus={() => setFocusedIndex(index)}
-                      onBlur={() => setFocusedIndex(null)}
-                      textAlign="center"
-                      placeholder="·"
-                      placeholderTextColor="#CBD5E1"
-                      editable={!loading && !resendLoading}
-                      accessibilityLabel={`Chiffre ${index + 1} du code`}
-                    />
-                  ))}
-                </View>
+                {/* OTP Inputs */}
+                <Pressable style={styles.otpContainer} onPress={() => inputRef.current?.focus()}>
+                  {Array.from({ length: 6 }).map((_, index) => {
+                    const digit = code[index] || '';
+                    const isFocused = index === code.length && focusedIndex !== null;
+                    return (
+                      <View
+                        key={index}
+                        style={[styles.otpInput, isFocused && styles.otpInputFocused]}
+                      >
+                        <Text style={styles.otpText}>{digit || '·'}</Text>
+                      </View>
+                    );
+                  })}
+                </Pressable>
 
+                {/* Hidden Input field */}
+                <TextInput
+                  ref={inputRef}
+                  value={code}
+                  onChangeText={(text) => {
+                    const sanitized = text.replace(/[^0-9]/g, '');
+                    if (sanitized.length <= 6) {
+                      setCode(sanitized);
+                      setError(null);
+                    }
+                  }}
+                  onFocus={() => setFocusedIndex(code.length)}
+                  onBlur={() => setFocusedIndex(null)}
+                  keyboardType="number-pad"
+                  maxLength={6}
+                  style={styles.hiddenInput}
+                  autoFocus={true}
+                  autoComplete="sms-otp"
+                  textContentType="oneTimeCode"
+                  editable={!loading && !resendLoading}
+                />
+
+                {/* Verify Button */}
                 <TouchableOpacity
                   style={[styles.button, (!codeComplete || loading || resendLoading) && styles.buttonMuted]}
                   onPress={() => void verifyOTPWithCode(codeJoined)}
@@ -451,7 +407,7 @@ export default function DriverLoginOtpScreen() {
                 >
                   {loading ? (
                     <View style={styles.buttonInner}>
-                      <ActivityIndicator color="#fff" size="small" />
+                      <ActivityIndicator color="#1A1A1A" size="small" />
                       <Text style={[styles.buttonText, styles.buttonTextPad]}>Vérification…</Text>
                     </View>
                   ) : (
@@ -459,21 +415,24 @@ export default function DriverLoginOtpScreen() {
                   )}
                 </TouchableOpacity>
 
-                {canResend ? (
-                  <TouchableOpacity
-                    onPress={() => void resendCode()}
-                    disabled={loading || resendLoading}
-                    style={styles.resendWrap}
-                  >
-                    {resendLoading ? (
-                      <ActivityIndicator color={Colors.primary} size="small" />
-                    ) : (
-                      <Text style={styles.resendText}>Renvoyer le code</Text>
-                    )}
-                  </TouchableOpacity>
-                ) : (
-                  <Text style={styles.timerText}>Renvoyer dans {timeLeft}s</Text>
-                )}
+                {/* Resend Actions */}
+                <View style={styles.resendContainer}>
+                  {canResend ? (
+                    <TouchableOpacity
+                      onPress={() => void resendCode()}
+                      disabled={loading || resendLoading}
+                      style={styles.resendWrap}
+                    >
+                      {resendLoading ? (
+                        <ActivityIndicator color={Colors.primary} size="small" />
+                      ) : (
+                        <Text style={styles.resendText}>Renvoyer le code</Text>
+                      )}
+                    </TouchableOpacity>
+                  ) : (
+                    <Text style={styles.timerText}>Renvoyer dans {timeLeft}s</Text>
+                  )}
+                </View>
 
                 <Text style={styles.helperText}>
                   Le code arrive en quelques secondes. Vérifiez aussi les messages indésirables.
@@ -483,16 +442,27 @@ export default function DriverLoginOtpScreen() {
           </View>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
+
+      {/* Success Overlay */}
+      {showSuccess && (
+        <View style={[StyleSheet.absoluteFill, styles.modalOverlay, { zIndex: 9999, elevation: 9999, backgroundColor: 'rgba(0,0,0,0.6)' }]}>
+          <View style={styles.successCard}>
+            <Ionicons name="checkmark-circle" size={80} color="#43A047" />
+            <Text style={styles.successModalText}>Succès !</Text>
+          </View>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safeOuter: { flex: 1, backgroundColor: '#F1F4FB' },
+  safeOuter: { flex: 1, backgroundColor: '#FFFFFF' },
   kav: { flex: 1 },
   inner: {
     flex: 1,
     paddingHorizontal: 24,
+    backgroundColor: '#FFFFFF',
   },
   scrollContent: {
     flexGrow: 1,
@@ -515,15 +485,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E0E0E0',
     ...Platform.select({
       ios: {
-        shadowColor: '#0f172a',
+        shadowColor: '#000',
         shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.06,
+        shadowOpacity: 0.05,
         shadowRadius: 3,
       },
-      android: { elevation: 2 },
+      android: { elevation: 1 },
     }),
   },
   column: {
@@ -532,44 +502,26 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     alignItems: 'stretch',
   },
-  kickerPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: 'rgba(54,80,208,0.1)',
-    marginBottom: 14,
-  },
-  kickerText: {
-    fontFamily: Fonts.titilliumWebSemiBold,
-    fontSize: 12,
-    color: Colors.primary,
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-  },
   title: {
-    fontSize: 22,
-    fontFamily: Fonts.titilliumWebBold,
-    color: '#0f172a',
+    fontSize: 24,
+    fontFamily: Fonts.bold,
+    color: '#212121',
     textAlign: 'center',
-    marginBottom: 12,
-    letterSpacing: -0.2,
+    marginBottom: 8,
+    letterSpacing: -0.3,
   },
   desc: {
     fontSize: 16,
-    fontFamily: Fonts.titilliumWeb,
-    color: '#64748B',
+    fontFamily: Fonts.regular,
+    color: '#757575',
     textAlign: 'center',
-    marginBottom: 22,
+    marginBottom: 36,
     lineHeight: 24,
-    paddingHorizontal: 8,
+    paddingHorizontal: 12,
   },
   phoneHighlight: {
-    fontFamily: Fonts.titilliumWebBold,
-    color: '#0f172a',
+    fontFamily: Fonts.bold,
+    color: '#212121',
   },
   successBanner: {
     flexDirection: 'row',
@@ -585,7 +537,7 @@ const styles = StyleSheet.create({
     flex: 1,
     color: '#047857',
     fontSize: 14,
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     lineHeight: 20,
   },
   errorBanner: {
@@ -606,7 +558,7 @@ const styles = StyleSheet.create({
     flex: 1,
     color: '#B91C1C',
     fontSize: 14,
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     lineHeight: 20,
   },
   otpContainer: {
@@ -615,96 +567,138 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     width: '100%',
-    marginBottom: 22,
-    gap: 6,
+    marginBottom: 32,
+    gap: 8,
   },
   otpInput: {
     flex: 1,
-    flexBasis: 0,
-    minWidth: 0,
-    height: 54,
-    maxWidth: 56,
-    borderColor: '#E2E8F0',
+    height: 52,
+    maxWidth: 52,
+    borderColor: '#E0E0E0',
     borderWidth: 1.5,
-    borderRadius: 12,
-    textAlign: 'center',
-    fontSize: 20,
-    fontFamily: Fonts.titilliumWebBold,
-    color: '#0f172a',
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    paddingHorizontal: 0,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#0f172a',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.06,
-        shadowRadius: 4,
-      },
-      android: { elevation: 2 },
-    }),
+  },
+  otpText: {
+    fontSize: 18,
+    fontFamily: Fonts.bold,
+    color: '#212121',
+    textAlign: 'center',
+  },
+  hiddenInput: {
+    position: 'absolute',
+    width: 1,
+    height: 1,
+    opacity: 0,
   },
   otpInputFocused: {
     borderColor: Colors.primary,
     borderWidth: 2,
+    ...Platform.select({
+      ios: {
+        shadowColor: Colors.primary,
+        shadowOpacity: 0.1,
+        shadowRadius: 6,
+      },
+      android: { elevation: 2 },
+    }),
   },
   button: {
     backgroundColor: Colors.primary,
-    paddingVertical: 16,
-    borderRadius: 14,
+    height: 54,
+    borderTopLeftRadius: 16,
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
+    borderTopRightRadius: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 56,
-    shadowColor: Colors.primary,
-    shadowOpacity: 0.28,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 12,
-    elevation: 6,
+    width: '100%',
+    ...Platform.select({
+      ios: {
+        shadowColor: Colors.primary,
+        shadowOpacity: 0.2,
+        shadowOffset: { width: 0, height: 4 },
+        shadowRadius: 8,
+      },
+      android: { elevation: 4 },
+    }),
   },
   buttonMuted: {
-    opacity: 0.45,
-    shadowOpacity: 0,
-    elevation: 0,
+    opacity: 0.5,
   },
   buttonInner: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   buttonTextPad: {
-    marginLeft: 10,
+    marginLeft: 8,
+    color: '#1A1A1A',
   },
   buttonText: {
-    color: Colors.white,
-    fontFamily: Fonts.titilliumWebBold,
+    color: '#1A1A1A',
+    fontFamily: Fonts.bold,
     fontSize: 17,
   },
-  timerText: {
-    fontSize: 14,
-    fontFamily: Fonts.titilliumWeb,
-    color: '#64748B',
-    textAlign: 'center',
-    marginTop: 16,
-  },
-  resendWrap: {
-    marginTop: 16,
-    alignSelf: 'center',
-    paddingVertical: 10,
-    minHeight: 36,
+  resendContainer: {
+    marginTop: 36,
+    alignItems: 'center',
     justifyContent: 'center',
   },
-  resendText: {
+  timerText: {
     fontSize: 15,
-    fontFamily: Fonts.titilliumWebSemiBold,
+    fontFamily: Fonts.semiBold,
+    color: '#9E9E9E',
+    textAlign: 'center',
+  },
+  resendWrap: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  resendText: {
+    fontSize: 16,
+    fontFamily: Fonts.bold,
     color: Colors.primary,
-    textDecorationLine: 'underline',
     textAlign: 'center',
   },
   helperText: {
     fontSize: 13,
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     color: '#94A3B8',
     textAlign: 'center',
     lineHeight: 20,
     marginTop: 18,
     paddingHorizontal: 12,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  successCard: {
+    width: 260,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    paddingVertical: 36,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOpacity: 0.15,
+        shadowOffset: { width: 0, height: 10 },
+        shadowRadius: 20,
+      },
+      android: { elevation: 10 },
+    }),
+  },
+  successModalText: {
+    marginTop: 18,
+    fontSize: 18,
+    fontFamily: Fonts.bold,
+    color: '#212121',
+    textAlign: 'center',
   },
 });

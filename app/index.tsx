@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { View, ActivityIndicator, StyleSheet, Image, Animated, StatusBar } from 'react-native';
-import { useRouter, useSegments } from 'expo-router';
+import React, { useEffect, useRef } from 'react';
+import { View, StyleSheet, Animated, StatusBar, Easing } from 'react-native';
+import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from '../theme';
 import { apiFetch, getApiBaseUrl } from './utils/apiClient';
@@ -8,49 +8,101 @@ import { getAuthToken, removeAuthToken } from './utils/authTokenStorage';
 
 export default function SplashScreen() {
     const router = useRouter();
-    const segments = useSegments();
-    const fadeAnim = useRef(new Animated.Value(1)).current;
-    const scaleAnim = useRef(new Animated.Value(1)).current;
-    const [isChecking, setIsChecking] = useState(true);
+    
+    // Animation values
+    const cabinScale = useRef(new Animated.Value(0.3)).current;
+    const cabinOpacity = useRef(new Animated.Value(0)).current;
+    
+    const wheelsScale = useRef(new Animated.Value(0)).current;
+    const wheelsOpacity = useRef(new Animated.Value(0)).current;
+    
+    const textOpacity = useRef(new Animated.Value(0)).current;
+    const textTranslateY = useRef(new Animated.Value(20)).current;
+    
+    const screenFade = useRef(new Animated.Value(1)).current;
 
     useEffect(() => {
+        // 1) Start the entry animation sequence
+        Animated.sequence([
+            // Step 1: Cabin drops & bounces
+            Animated.parallel([
+                Animated.spring(cabinScale, {
+                    toValue: 1,
+                    tension: 40,
+                    friction: 6,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(cabinOpacity, {
+                    toValue: 1,
+                    duration: 600,
+                    useNativeDriver: true,
+                }),
+            ]),
+            // Step 2: Wheels pop & bounce (suspension settle)
+            Animated.parallel([
+                Animated.spring(wheelsScale, {
+                    toValue: 1,
+                    tension: 50,
+                    friction: 5,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(wheelsOpacity, {
+                    toValue: 1,
+                    duration: 400,
+                    useNativeDriver: true,
+                }),
+            ]),
+            // Step 3: Text fades in & slides up
+            Animated.parallel([
+                Animated.timing(textOpacity, {
+                    toValue: 1,
+                    duration: 600,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(textTranslateY, {
+                    toValue: 0,
+                    duration: 600,
+                    easing: Easing.out(Easing.back(1.5)),
+                    useNativeDriver: true,
+                }),
+            ]),
+        ]).start();
+
+        // 2) Prepare session checks & navigation
         const prepareAndNavigate = async () => {
             let targetRoute = '/driver-onboarding';
             try {
-                // 1) Vérifier la présence du token pour décider du délai
                 const token = await getAuthToken();
-                const minDelay = token ? 1500 : 5000; // 1.5s pour les habitués, 5s pour les nouveaux
+                // Give enough time to admire the animation (3.5s total)
+                const minDelay = 3500; 
 
-                // 2) Lancer la vérification et le timer en parallèle
                 const verificationPromise = verifySession();
                 const minDelayPromise = new Promise(resolve => setTimeout(resolve, minDelay));
 
-                // 3) Attendre que les deux soient terminés
                 const [determinedRoute] = await Promise.all([verificationPromise, minDelayPromise]);
                 targetRoute = determinedRoute;
 
             } catch (e) {
-                // En cas d'erreur fatale
                 targetRoute = '/driver-onboarding';
             } finally {
-                setIsChecking(false);
-                router.replace(targetRoute as any);
+                // Step 4: Fade out the entire screen before transitioning
+                Animated.timing(screenFade, {
+                    toValue: 0,
+                    duration: 400,
+                    useNativeDriver: true,
+                }).start(() => {
+                    router.replace(targetRoute as any);
+                });
             }
         };
 
         const verifySession = async (): Promise<string> => {
             try {
                 const token = await getAuthToken();
+                if (!token) return '/driver-onboarding';
+                if (!getApiBaseUrl()) return '/(tabs)';
 
-                if (!token) {
-                    return '/driver-onboarding';
-                }
-
-                if (!getApiBaseUrl()) {
-                    return '/(tabs)';
-                }
-
-                // Vérification auprès du backend
+                // Verification auprès du backend
                 const res = await apiFetch('/driver/profile', {
                     method: 'GET',
                     headers: {
@@ -58,9 +110,7 @@ export default function SplashScreen() {
                     },
                 });
 
-                if (!res) {
-                    return '/(tabs)';
-                }
+                if (!res) return '/(tabs)';
 
                 if (res.status === 401) {
                     await removeAuthToken();
@@ -73,7 +123,7 @@ export default function SplashScreen() {
 
                 if (!res.ok || !json?.profile) {
                     if (json && !json.profile) {
-                        return '/driver-onboarding';
+                        return '/become-driver';
                     }
                     return '/(tabs)';
                 }
@@ -91,7 +141,6 @@ export default function SplashScreen() {
                 }
 
                 return '/(tabs)';
-
             } catch (error) {
                 return '/(tabs)';
             }
@@ -100,39 +149,81 @@ export default function SplashScreen() {
         prepareAndNavigate();
     }, []);
 
-    if (isChecking || (segments as any).length === 0 || (segments as any)[0] === 'index') {
-        return (
-            <View style={styles.container}>
-                <StatusBar barStyle="light-content" backgroundColor={Colors.primary} translucent />
-                <Animated.View style={[
-                    styles.contentContainer,
-                    {
-                        opacity: fadeAnim,
-                        transform: [{ scale: scaleAnim }]
-                    }
-                ]}>
-                    <Image
-                        source={require('../assets/images/Logo blanc.png')}
-                        style={{ width: 150, height: 150, resizeMode: 'contain' }}
-                    />
-                    <ActivityIndicator size="large" color="white" style={{ marginTop: 20 }} />
-                </Animated.View>
+    return (
+        <Animated.View style={[styles.container, { opacity: screenFade }]}>
+            <StatusBar barStyle="light-content" backgroundColor="#1A1A1A" translucent={false} />
+            
+            <View style={styles.contentContainer}>
+                {/* Main Logo Cabin */}
+                <Animated.Image
+                    source={require('../assets/images/logo_cabin.png')}
+                    style={[
+                        styles.cabin,
+                        {
+                            opacity: cabinOpacity,
+                            transform: [{ scale: cabinScale }],
+                            tintColor: '#FDD835',
+                        }
+                    ]}
+                />
+                
+                {/* Wheels */}
+                <Animated.Image
+                    source={require('../assets/images/logo_wheels.png')}
+                    style={[
+                        styles.wheels,
+                        {
+                            opacity: wheelsOpacity,
+                            transform: [{ scale: wheelsScale }],
+                            tintColor: '#FDD835',
+                        }
+                    ]}
+                />
+                
+                {/* Text kêkênon */}
+                <Animated.Image
+                    source={require('../assets/images/logo_text.png')}
+                    style={[
+                        styles.text,
+                        {
+                            opacity: textOpacity,
+                            transform: [{ translateY: textTranslateY }],
+                            tintColor: '#FDD835',
+                        }
+                    ]}
+                />
             </View>
-        );
-    }
-
-    return null;
+        </Animated.View>
+    );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: Colors.primary,
-    },
-    contentContainer: {
-        flex: 1,
+        backgroundColor: '#1A1A1A', // Dark background for Driver App
         justifyContent: 'center',
         alignItems: 'center',
-        gap: 20
-    }
+    },
+    contentContainer: {
+        justifyContent: 'center',
+        alignItems: 'center',
+        width: '100%',
+    },
+    cabin: {
+        width: 180,
+        height: 170,
+        resizeMode: 'contain',
+    },
+    wheels: {
+        width: 120,
+        height: 41,
+        resizeMode: 'contain',
+        marginTop: 10,
+        marginBottom: 35,
+    },
+    text: {
+        width: 200,
+        height: 38,
+        resizeMode: 'contain',
+    },
 });

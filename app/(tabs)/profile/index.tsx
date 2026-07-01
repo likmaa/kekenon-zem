@@ -571,7 +571,7 @@ export default function DriverProfileScreen() {
 
         {/* Version + DevPanel trigger */}
         <TouchableOpacity onPress={handleDevTrigger} activeOpacity={1} style={{ marginTop: 20, marginBottom: 20, alignItems: 'center' }}>
-          <Text style={{ fontFamily: Fonts.titilliumWeb, fontSize: 12, color: Colors.gray }}>v1.2.0 • TIC Miton</Text>
+          <Text style={{ fontFamily: Fonts.titilliumWeb, fontSize: 12, color: Colors.gray }}>v1.2.0 • Kêkênon Zem</Text>
         </TouchableOpacity>
 
       </ScrollView>

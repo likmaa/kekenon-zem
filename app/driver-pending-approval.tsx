@@ -27,6 +27,35 @@ const WA_DRIVER = '22997000000';
 
 type CheckSource = 'initial' | 'poll' | 'manual';
 
+function TimelineStep(props: {
+  state: 'done' | 'current' | 'upcoming';
+  icon: React.ComponentProps<typeof Ionicons>['name'];
+  title: string;
+  subtitle: string;
+  isLast?: boolean;
+}) {
+  const { state, icon, title, subtitle, isLast } = props;
+  const circleColor =
+    state === 'done' ? Colors.success : state === 'current' ? '#37BD6B' : Colors.border;
+  const iconColor =
+    state === 'done' ? Colors.white : state === 'current' ? Colors.white : Colors.mediumGray;
+
+  return (
+    <View style={styles.stepRow}>
+      <View style={styles.stepRail}>
+        <View style={[styles.stepDot, { backgroundColor: circleColor, borderColor: circleColor }]}>
+          <Ionicons name={icon} size={18} color={iconColor} />
+        </View>
+        {!isLast ? <View style={styles.stepLine} /> : null}
+      </View>
+      <View style={styles.stepBody}>
+        <Text style={[styles.stepTitle, state === 'upcoming' && styles.stepTitleMuted]}>{title}</Text>
+        <Text style={styles.stepSubtitle}>{subtitle}</Text>
+      </View>
+    </View>
+  );
+}
+
 export default function DriverPendingApprovalScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -121,7 +150,7 @@ export default function DriverPendingApprovalScreen() {
 
   const openSupport = () => {
     const text =
-      "Bonjour, je suis chauffeur candidat sur l'app TIC MITON. Ma demande est en attente de validation — pouvez-vous m'aider ?";
+      "Bonjour, je suis conducteur candidat sur l'app Kêkênon. Ma demande est en attente de validation — pouvez-vous m'aider ?";
     void openExternalUrl(`https://wa.me/${WA_DRIVER}?text=${encodeURIComponent(text)}`).then((ok) => {
       if (!ok) Alert.alert('Erreur', "Impossible d'ouvrir WhatsApp.");
     });
@@ -140,13 +169,7 @@ export default function DriverPendingApprovalScreen() {
 
   return (
     <View style={styles.root}>
-      <StatusBar barStyle="dark-content" />
-      <LinearGradient
-        colors={['#E8ECFF', '#F0F4FF', Colors.background]}
-        locations={[0, 0.35, 1]}
-        style={StyleSheet.absoluteFill}
-        pointerEvents="none"
-      />
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
         <View style={[styles.header, { paddingTop: Math.max(insets.top, 8) - 8 }]}>
@@ -170,9 +193,9 @@ export default function DriverPendingApprovalScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <Animated.View style={[styles.heroRing, { transform: [{ scale: pulse }] }]}>
-            <LinearGradient colors={[...Gradients.primary]} style={styles.heroGradient}>
+            <View style={styles.heroSolid}>
               <Ionicons name="hourglass-outline" size={44} color={Colors.white} />
-            </LinearGradient>
+            </View>
           </Animated.View>
 
           <Text style={styles.lead}>Votre dossier est en file d&apos;attente</Text>
@@ -201,7 +224,7 @@ export default function DriverPendingApprovalScreen() {
                 state="upcoming"
                 icon="rocket-outline"
                 title="Activation"
-                subtitle="Accès à l'app chauffeur dès validation."
+                subtitle="Accès à l'app Zem dès validation."
                 isLast
               />
             </View>
@@ -209,7 +232,7 @@ export default function DriverPendingApprovalScreen() {
 
           <View style={styles.metaRow}>
             <View style={styles.metaChip}>
-              <Ionicons name="sync-outline" size={16} color={Colors.primary} />
+              <Ionicons name="sync-outline" size={16} color="#37BD6B" />
               <Text style={styles.metaChipText}>Vérif. auto toutes les {POLL_MS / 1000} s</Text>
             </View>
             <View style={styles.metaChip}>
@@ -231,7 +254,7 @@ export default function DriverPendingApprovalScreen() {
           </TouchableOpacity>
 
           <View style={styles.infoBanner}>
-            <Ionicons name="notifications-outline" size={22} color={Colors.primaryDark} />
+            <Ionicons name="notifications-outline" size={22} color="#37BD6B" />
             <Text style={styles.infoBannerText}>
               Pensez à autoriser les notifications : nous vous préviendrons dès que votre statut change.
             </Text>
@@ -248,9 +271,9 @@ export default function DriverPendingApprovalScreen() {
             accessibilityLabel="Rafraîchir le statut maintenant"
           >
             {isChecking ? (
-              <ActivityIndicator size="small" color={Colors.white} />
+              <ActivityIndicator size="small" color="#1A1A1A" />
             ) : (
-              <Ionicons name="refresh" size={22} color={Colors.white} />
+              <Ionicons name="refresh" size={22} color="#1A1A1A" />
             )}
             <Text style={styles.refreshBtnText}>{isChecking ? 'Vérification…' : 'Vérifier maintenant'}</Text>
           </TouchableOpacity>
@@ -260,39 +283,11 @@ export default function DriverPendingApprovalScreen() {
   );
 }
 
-function TimelineStep(props: {
-  state: 'done' | 'current' | 'upcoming';
-  icon: React.ComponentProps<typeof Ionicons>['name'];
-  title: string;
-  subtitle: string;
-  isLast?: boolean;
-}) {
-  const { state, icon, title, subtitle, isLast } = props;
-  const circleColor =
-    state === 'done' ? Colors.success : state === 'current' ? Colors.primary : Colors.border;
-  const iconColor =
-    state === 'done' ? Colors.white : state === 'current' ? Colors.white : Colors.mediumGray;
-
-  return (
-    <View style={styles.stepRow}>
-      <View style={styles.stepRail}>
-        <View style={[styles.stepDot, { backgroundColor: circleColor, borderColor: circleColor }]}>
-          <Ionicons name={icon} size={18} color={iconColor} />
-        </View>
-        {!isLast ? <View style={styles.stepLine} /> : null}
-      </View>
-      <View style={styles.stepBody}>
-        <Text style={[styles.stepTitle, state === 'upcoming' && styles.stepTitleMuted]}>{title}</Text>
-        <Text style={styles.stepSubtitle}>{subtitle}</Text>
-      </View>
-    </View>
-  );
-}
 
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: '#FFFFFF',
   },
   safe: {
     flex: 1,
@@ -306,7 +301,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     flex: 1,
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 20,
     color: Colors.black,
     letterSpacing: -0.3,
@@ -316,9 +311,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   headerLinkText: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 14,
-    color: Colors.primary,
+    color: '#37BD6B',
   },
   scrollContent: {
     paddingHorizontal: 22,
@@ -329,25 +324,17 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 22,
     borderRadius: 999,
-    ...Platform.select({
-      ios: {
-        shadowColor: Colors.primary,
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.28,
-        shadowRadius: 18,
-      },
-      android: { elevation: 10 },
-    }),
   },
-  heroGradient: {
+  heroSolid: {
     width: 96,
     height: 96,
     borderRadius: 48,
+    backgroundColor: '#37BD6B',
     alignItems: 'center',
     justifyContent: 'center',
   },
   lead: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 22,
     color: Colors.black,
     textAlign: 'center',
@@ -355,7 +342,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.4,
   },
   leadSub: {
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     fontSize: 15,
     color: Colors.gray,
     textAlign: 'center',
@@ -370,18 +357,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     borderWidth: 1,
     borderColor: Colors.border,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.06,
-        shadowRadius: 12,
-      },
-      android: { elevation: 3 },
-    }),
   },
   cardTitle: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 13,
     color: Colors.mediumGray,
     textTransform: 'uppercase',
@@ -420,7 +398,7 @@ const styles = StyleSheet.create({
     paddingBottom: 18,
   },
   stepTitle: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 16,
     color: Colors.black,
     marginBottom: 4,
@@ -429,7 +407,7 @@ const styles = StyleSheet.create({
     color: Colors.mediumGray,
   },
   stepSubtitle: {
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     fontSize: 14,
     color: Colors.gray,
     lineHeight: 20,
@@ -453,12 +431,12 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
   },
   metaChipText: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 12,
     color: Colors.primaryDark,
   },
   metaChipTextMuted: {
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     fontSize: 12,
     color: Colors.gray,
   },
@@ -476,7 +454,7 @@ const styles = StyleSheet.create({
   },
   supportText: {
     flex: 1,
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 14,
     color: Colors.black,
     lineHeight: 20,
@@ -492,7 +470,7 @@ const styles = StyleSheet.create({
   },
   infoBannerText: {
     flex: 1,
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     fontSize: 13,
     color: Colors.primaryDark,
     lineHeight: 19,
@@ -502,32 +480,23 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: Colors.border,
-    backgroundColor: Colors.background,
+    backgroundColor: '#FFFFFF',
   },
   refreshBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    backgroundColor: Colors.primary,
+    backgroundColor: '#FDD835', // Or pure yellow? Let's use Kekenon Yellow: #FDD835
     paddingVertical: 16,
     borderRadius: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: Colors.primary,
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.35,
-        shadowRadius: 10,
-      },
-      android: { elevation: 6 },
-    }),
   },
   refreshBtnDisabled: {
     opacity: 0.75,
   },
   refreshBtnText: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 16,
-    color: Colors.white,
+    color: '#1A1A1A',
   },
 });
