@@ -386,7 +386,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   sheetKicker: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 10,
     letterSpacing: 1.4,
     color: Colors.primary,
@@ -395,13 +395,13 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   sheetTitle: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 21,
     color: Colors.black,
     letterSpacing: -0.3,
   },
   sheetSubtitle: {
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     fontSize: 14,
     color: Colors.gray,
     lineHeight: 20,
@@ -436,7 +436,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(54, 80, 208, 0.12)',
   },
   betweenText: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 11,
     letterSpacing: 1,
     color: Colors.mediumGray,
@@ -459,7 +459,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   timerLabel: {
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     fontSize: 12,
     color: Colors.mediumGray,
   },
@@ -497,7 +497,7 @@ const styles = StyleSheet.create({
     borderColor: '#DDD6FE',
   },
   chipText: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 13,
     color: Colors.primaryDark,
   },
@@ -516,7 +516,7 @@ const styles = StyleSheet.create({
     borderColor: MUTED_LINE,
   },
   chipNeutralText: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 13,
     color: Colors.primaryDark,
   },
@@ -529,7 +529,7 @@ const styles = StyleSheet.create({
     borderColor: `${Colors.primary}12`,
   },
   fareHint: {
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     fontSize: 12,
     color: Colors.gray,
     marginBottom: 4,
@@ -540,13 +540,13 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   fareAmount: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 34,
     color: Colors.primaryDark,
     letterSpacing: -1,
   },
   fareCurrency: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 14,
     color: Colors.primary,
     opacity: 0.75,
@@ -574,7 +574,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   riderLabel: {
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     fontSize: 11,
     color: Colors.gray,
     textTransform: 'uppercase',
@@ -582,7 +582,7 @@ const styles = StyleSheet.create({
     marginBottom: 3,
   },
   riderName: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 16,
     color: Colors.black,
   },
@@ -601,7 +601,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   routePanelTitle: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 14,
     color: Colors.primaryDark,
   },
@@ -649,7 +649,7 @@ const styles = StyleSheet.create({
     paddingLeft: 4,
   },
   routeTag: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 10,
     color: Colors.primary,
     textTransform: 'uppercase',
@@ -661,7 +661,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   routeAddr: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 15,
     color: Colors.black,
     lineHeight: 22,
@@ -683,7 +683,7 @@ const styles = StyleSheet.create({
     borderColor: `${Colors.primary}35`,
   },
   btnGhostText: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 15,
     color: Colors.primary,
   },
@@ -709,7 +709,7 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
   },
   btnPrimaryText: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 15,
     color: 'white',
   },
@@ -722,7 +722,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   negotiationTitle: {
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     fontSize: 12,
     color: Colors.gray,
     textAlign: 'center',
@@ -739,7 +739,7 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   negotiationValue: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 22,
     color: Colors.black,
     minWidth: 110,
@@ -759,7 +759,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   presetChipText: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 12,
     color: Colors.primaryDark,
   },

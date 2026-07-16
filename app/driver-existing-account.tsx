@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     loadingText: {
-        fontFamily: Fonts.titilliumWeb,
+        fontFamily: Fonts.regular,
         fontSize: 16,
         color: Colors.gray,
         marginTop: 12,
@@ -285,7 +285,7 @@ const styles = StyleSheet.create({
         padding: 4,
     },
     headerTitle: {
-        fontFamily: Fonts.titilliumWebBold,
+        fontFamily: Fonts.bold,
         fontSize: 18,
         color: Colors.black,
     },
@@ -294,7 +294,7 @@ const styles = StyleSheet.create({
         paddingBottom: 40,
     },
     sectionTitle: {
-        fontFamily: Fonts.titilliumWebBold,
+        fontFamily: Fonts.bold,
         fontSize: 16,
         color: Colors.gray,
         marginBottom: 20,
@@ -304,7 +304,7 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     label: {
-        fontFamily: Fonts.titilliumWebBold,
+        fontFamily: Fonts.bold,
         fontSize: 14,
         color: Colors.black,
         marginBottom: 8,
@@ -314,7 +314,7 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         paddingHorizontal: 16,
         paddingVertical: 14,
-        fontFamily: Fonts.titilliumWeb,
+        fontFamily: Fonts.regular,
         fontSize: 16,
         color: Colors.black,
         borderWidth: 1,
@@ -338,7 +338,7 @@ const styles = StyleSheet.create({
         borderColor: Colors.primary,
     },
     typeButtonText: {
-        fontFamily: Fonts.titilliumWebBold,
+        fontFamily: Fonts.bold,
         fontSize: 14,
         color: Colors.gray,
     },
@@ -356,7 +356,7 @@ const styles = StyleSheet.create({
         opacity: 0.6,
     },
     saveButtonText: {
-        fontFamily: Fonts.titilliumWebBold,
+        fontFamily: Fonts.bold,
         fontSize: 16,
         color: 'white',
     },

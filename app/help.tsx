@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
         padding: 4,
     },
     headerTitle: {
-        fontFamily: Fonts.titilliumWebBold,
+        fontFamily: Fonts.bold,
         fontSize: 18,
         color: Colors.black,
     },
@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
         paddingBottom: 40,
     },
     sectionTitle: {
-        fontFamily: Fonts.titilliumWebBold,
+        fontFamily: Fonts.bold,
         fontSize: 16,
         color: Colors.gray,
         marginBottom: 12,
@@ -234,13 +234,13 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     menuTitle: {
-        fontFamily: Fonts.titilliumWebBold,
+        fontFamily: Fonts.bold,
         fontSize: 16,
         color: Colors.black,
         marginBottom: 2,
     },
     menuDescription: {
-        fontFamily: Fonts.titilliumWeb,
+        fontFamily: Fonts.regular,
         fontSize: 13,
         color: Colors.gray,
     },
@@ -255,19 +255,19 @@ const styles = StyleSheet.create({
         paddingVertical: 20,
     },
     appInfoText: {
-        fontFamily: Fonts.titilliumWebBold,
+        fontFamily: Fonts.bold,
         fontSize: 16,
         color: Colors.black,
         marginBottom: 4,
     },
     appInfoVersion: {
-        fontFamily: Fonts.titilliumWeb,
+        fontFamily: Fonts.regular,
         fontSize: 14,
         color: Colors.gray,
         marginBottom: 8,
     },
     appInfoCopyright: {
-        fontFamily: Fonts.titilliumWeb,
+        fontFamily: Fonts.regular,
         fontSize: 12,
         color: Colors.gray,
     },

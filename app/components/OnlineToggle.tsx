@@ -98,13 +98,13 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     statusText: {
-        fontFamily: Fonts.titilliumWebBold,
+        fontFamily: Fonts.bold,
         fontSize: 18,
         color: 'white',
         letterSpacing: 1,
     },
     actionText: {
-        fontFamily: Fonts.titilliumWeb,
+        fontFamily: Fonts.regular,
         fontSize: 12,
         color: 'rgba(255, 255, 255, 0.8)',
     },

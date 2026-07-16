@@ -154,13 +154,13 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   title: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 13.5,
     color: Colors.white,
     marginBottom: 1,
   },
   body: {
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     fontSize: 11.5,
     lineHeight: 14,
     color: 'rgba(255,255,255,0.9)',

@@ -193,12 +193,12 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     color: Colors.black,
   },
   subtitle: {
     fontSize: 14,
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     color: Colors.gray,
     marginTop: 4,
   },
@@ -239,12 +239,12 @@ const styles = StyleSheet.create({
   },
   serviceText: {
     fontSize: 14,
-    fontFamily: Fonts.titilliumWebSemiBold,
+    fontFamily: Fonts.semiBold,
     color: Colors.black,
   },
   dateText: {
     fontSize: 13,
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     color: Colors.gray,
     marginBottom: 16,
   },
@@ -260,7 +260,7 @@ const styles = StyleSheet.create({
 
   statusBadgeText: {
     fontSize: 11,
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
   },
   successText: { color: '#059669' },
   cancelledText: { color: '#EF4444' },
@@ -292,7 +292,7 @@ const styles = StyleSheet.create({
   },
   addressText: {
     fontSize: 14,
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     color: Colors.black,
   },
 
@@ -310,18 +310,18 @@ const styles = StyleSheet.create({
   },
   fareAmount: {
     fontSize: 20,
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     color: Colors.primary,
   },
   fareLabel: {
     fontSize: 10,
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     color: Colors.gray,
     marginTop: -2,
   },
   netEarningsText: {
     fontSize: 11,
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     color: Colors.success,
   },
   paymentBadge: {
@@ -335,7 +335,7 @@ const styles = StyleSheet.create({
   },
   paymentLabel: {
     fontSize: 12,
-    fontFamily: Fonts.titilliumWebSemiBold,
+    fontFamily: Fonts.semiBold,
     color: Colors.gray,
   },
 
@@ -347,13 +347,13 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 20,
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     color: Colors.black,
     marginTop: 20,
   },
   emptySubtitle: {
     fontSize: 15,
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     color: Colors.gray,
     textAlign: 'center',
     marginTop: 10,
@@ -368,11 +368,11 @@ const styles = StyleSheet.create({
   },
   detailRow: {
     fontSize: 13,
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     color: Colors.black,
   },
   detailLabel: {
-    fontFamily: Fonts.titilliumWebSemiBold,
+    fontFamily: Fonts.semiBold,
     color: Colors.gray,
   },
 });

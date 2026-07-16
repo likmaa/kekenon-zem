@@ -204,12 +204,12 @@ const styles = StyleSheet.create({
     },
     title: {
         fontSize: 18,
-        fontFamily: Fonts.titilliumWebBold,
+        fontFamily: Fonts.bold,
         color: Colors.black,
     },
     logCount: {
         fontSize: 12,
-        fontFamily: Fonts.titilliumWeb,
+        fontFamily: Fonts.regular,
         color: Colors.gray,
         marginTop: 1,
     },
@@ -262,12 +262,12 @@ const styles = StyleSheet.create({
     },
     tabText: {
         fontSize: 13,
-        fontFamily: Fonts.titilliumWeb,
+        fontFamily: Fonts.regular,
         color: '#6B7280',
     },
     activeTabText: {
         color: Colors.primary,
-        fontFamily: Fonts.titilliumWebBold,
+        fontFamily: Fonts.bold,
     },
     logList: {
         flex: 1,
@@ -282,12 +282,12 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     emptyTitle: {
-        fontFamily: Fonts.titilliumWebBold,
+        fontFamily: Fonts.bold,
         fontSize: 16,
         color: '#6B7280',
     },
     emptySubtitle: {
-        fontFamily: Fonts.titilliumWeb,
+        fontFamily: Fonts.regular,
         fontSize: 13,
         color: '#9CA3AF',
     },
@@ -316,17 +316,17 @@ const styles = StyleSheet.create({
     },
     levelText: {
         fontSize: 10,
-        fontFamily: Fonts.titilliumWebBold,
+        fontFamily: Fonts.bold,
     },
     timestamp: {
         fontSize: 11,
-        fontFamily: Fonts.titilliumWeb,
+        fontFamily: Fonts.regular,
         color: '#9CA3AF',
     },
     message: {
         fontSize: 14,
         color: '#1F2937',
-        fontFamily: Fonts.titilliumWebSemiBold,
+        fontFamily: Fonts.semiBold,
     },
     contextContainer: {
         marginTop: 8,

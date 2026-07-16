@@ -6,12 +6,6 @@ export const Fonts = {
   semiBold: 'Rajdhani-SemiBold',
   bold: 'Rajdhani-Bold',
 
-  // Alias de compatibilité (ancien code) — pointent tous vers Rajdhani
-  titilliumWeb: 'Rajdhani-Regular',
-  titilliumWebBold: 'Rajdhani-Bold',
-  titilliumWebSemiBold: 'Rajdhani-SemiBold',
-  titilliumWebLight: 'Rajdhani-Light',
-
   // Alias génériques
   regular_: 'Rajdhani-Regular',
   semiBold_: 'Rajdhani-SemiBold',

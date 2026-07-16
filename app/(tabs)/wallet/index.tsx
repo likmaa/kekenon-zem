@@ -237,7 +237,7 @@ export default function DriverWalletScreen() {
         </View>
 
         {error && (
-          <Text style={{ fontFamily: Fonts.titilliumWeb, fontSize: 13, color: 'red', marginBottom: 8 }}>
+          <Text style={{ fontFamily: Fonts.regular, fontSize: 13, color: 'red', marginBottom: 8 }}>
             {error}
           </Text>
         )}
@@ -315,7 +315,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
   },
   headerTitle: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 24,
     color: Colors.black,
   },
@@ -334,12 +334,12 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   balanceLabel: {
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     fontSize: 16,
     color: 'rgba(255,255,255,0.7)',
   },
   balanceAmount: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 36,
     color: 'white',
     marginVertical: 8,
@@ -352,7 +352,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   withdrawButtonText: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 15,
     color: 'white',
   },
@@ -368,12 +368,12 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   summaryLabel: {
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     fontSize: 14,
     color: Colors.gray,
   },
   summaryValue: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 18,
     color: Colors.black,
     marginTop: 4,
@@ -385,7 +385,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   sectionTitle: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 18,
     color: Colors.black,
     marginBottom: 16,
@@ -406,7 +406,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   barLabel: {
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     fontSize: 12,
     color: Colors.gray,
     marginTop: 8,
@@ -423,7 +423,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   seeAllText: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 14,
     color: Colors.primary,
   },
@@ -446,24 +446,24 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   txDescription: {
-    fontFamily: Fonts.titilliumWebSemiBold,
+    fontFamily: Fonts.semiBold,
     fontSize: 15,
     color: Colors.black,
   },
   txTime: {
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     fontSize: 13,
     color: Colors.gray,
     marginTop: 2,
   },
   txAmount: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 15,
     color: Colors.black,
   },
   emptyText: {
     textAlign: 'center',
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     color: Colors.gray,
     paddingVertical: 20,
   },

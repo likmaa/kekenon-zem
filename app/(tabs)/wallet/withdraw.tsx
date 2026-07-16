@@ -136,7 +136,7 @@ export default function WithdrawScreen() {
         )}
 
         {error && (
-          <Text style={{ color: 'red', fontSize: 13, marginTop: 12, marginBottom: 12, fontFamily: Fonts.titilliumWeb }}>
+          <Text style={{ color: 'red', fontSize: 13, marginTop: 12, marginBottom: 12, fontFamily: Fonts.regular }}>
             {error}
           </Text>
         )}
@@ -156,10 +156,10 @@ export default function WithdrawScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F6F7F9', padding: 16 },
   header: { marginBottom: 10, paddingTop: 10 },
-  title: { fontSize: 24, fontFamily: Fonts.titilliumWebBold, color: '#111' },
+  title: { fontSize: 24, fontFamily: Fonts.bold, color: '#111' },
   card: { backgroundColor: '#fff', borderRadius: 20, padding: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 2 },
-  label: { color: '#666', marginBottom: 8, fontFamily: Fonts.titilliumWebBold, fontSize: 14 },
-  input: { borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 12, padding: 14, fontSize: 16, fontFamily: Fonts.titilliumWeb, backgroundColor: '#f9fafb' },
+  label: { color: '#666', marginBottom: 8, fontFamily: Fonts.bold, fontSize: 14 },
+  input: { borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 12, padding: 14, fontSize: 16, fontFamily: Fonts.regular, backgroundColor: '#f9fafb' },
   methodsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 5 },
   methodItem: {
     flex: 1,
@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f3f4f6'
   },
   methodLabel: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     color: '#666',
     fontSize: 15
   },
@@ -184,5 +184,5 @@ const styles = StyleSheet.create({
     color: '#111'
   },
   primary: { backgroundColor: '#111827', paddingVertical: 16, borderRadius: 14, alignItems: 'center' },
-  primaryText: { color: '#fff', fontFamily: Fonts.titilliumWebBold, fontSize: 16 },
+  primaryText: { color: '#fff', fontFamily: Fonts.bold, fontSize: 16 },
 });

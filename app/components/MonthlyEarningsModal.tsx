@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     title: {
-        fontFamily: Fonts.titilliumWebBold,
+        fontFamily: Fonts.bold,
         fontSize: 22,
         color: Colors.black,
     },
@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
         marginBottom: 24,
     },
     periodText: {
-        fontFamily: Fonts.titilliumWeb,
+        fontFamily: Fonts.regular,
         fontSize: 14,
         color: Colors.gray,
         textTransform: 'capitalize',
@@ -158,13 +158,13 @@ const styles = StyleSheet.create({
         borderColor: '#DBEAFE',
     },
     label: {
-        fontFamily: Fonts.titilliumWeb,
+        fontFamily: Fonts.regular,
         fontSize: 14,
         color: Colors.gray,
         marginBottom: 8,
     },
     mainAmount: {
-        fontFamily: Fonts.titilliumWebBold,
+        fontFamily: Fonts.bold,
         fontSize: 36,
         color: Colors.primary,
         marginBottom: 12,
@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
         borderRadius: 20,
     },
     commissionText: {
-        fontFamily: Fonts.titilliumWebBold,
+        fontFamily: Fonts.bold,
         fontSize: 12,
         color: 'white',
     },
@@ -203,12 +203,12 @@ const styles = StyleSheet.create({
         gap: 12,
     },
     detailLabel: {
-        fontFamily: Fonts.titilliumWeb,
+        fontFamily: Fonts.regular,
         fontSize: 14,
         color: Colors.black,
     },
     detailValue: {
-        fontFamily: Fonts.titilliumWebBold,
+        fontFamily: Fonts.bold,
         fontSize: 15,
         color: Colors.black,
     },
@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
     },
     infoText: {
         flex: 1,
-        fontFamily: Fonts.titilliumWeb,
+        fontFamily: Fonts.regular,
         fontSize: 13,
         color: Colors.gray,
         lineHeight: 18,

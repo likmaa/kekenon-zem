@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
         marginLeft: -8,
     },
     headerTitle: {
-        fontFamily: Fonts.titilliumWebBold,
+        fontFamily: Fonts.bold,
         fontSize: 18,
         color: Colors.black,
     },
@@ -230,19 +230,19 @@ const styles = StyleSheet.create({
         marginBottom: 4,
     },
     itemTitle: {
-        fontFamily: Fonts.titilliumWebBold,
+        fontFamily: Fonts.bold,
         fontSize: 16,
         color: Colors.black,
         flex: 1,
         marginRight: 8,
     },
     itemTime: {
-        fontFamily: Fonts.titilliumWeb,
+        fontFamily: Fonts.regular,
         fontSize: 12,
         color: Colors.gray,
     },
     itemMessage: {
-        fontFamily: Fonts.titilliumWeb,
+        fontFamily: Fonts.regular,
         fontSize: 14,
         color: '#4B5563',
         lineHeight: 20,
@@ -253,7 +253,7 @@ const styles = StyleSheet.create({
         marginTop: 100,
     },
     emptyText: {
-        fontFamily: Fonts.titilliumWebSemiBold,
+        fontFamily: Fonts.semiBold,
         fontSize: 16,
         color: Colors.gray,
         marginTop: 16,
@@ -283,7 +283,7 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     modalTitle: {
-        fontFamily: Fonts.titilliumWebBold,
+        fontFamily: Fonts.bold,
         fontSize: 20,
         color: Colors.black,
     },
@@ -291,13 +291,13 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     detailTitle: {
-        fontFamily: Fonts.titilliumWebBold,
+        fontFamily: Fonts.bold,
         fontSize: 18,
         color: Colors.black,
         marginBottom: 8,
     },
     detailDate: {
-        fontFamily: Fonts.titilliumWeb,
+        fontFamily: Fonts.regular,
         fontSize: 14,
         color: Colors.gray,
         marginBottom: 16,
@@ -308,7 +308,7 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     detailMessage: {
-        fontFamily: Fonts.titilliumWeb,
+        fontFamily: Fonts.regular,
         fontSize: 16,
         color: '#374151',
         lineHeight: 24,
@@ -320,7 +320,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     closeButtonText: {
-        fontFamily: Fonts.titilliumWebBold,
+        fontFamily: Fonts.bold,
         fontSize: 16,
         color: 'white',
     },

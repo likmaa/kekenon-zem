@@ -349,7 +349,7 @@ function RideOngoingScreenInner() {
         {(!mapReady || !mapVisible) && (
           <View style={{ ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f8fafc', zIndex: 10 }}>
             <ActivityIndicator size="large" color={Colors.primary} />
-            <Text style={{ marginTop: 12, color: Colors.gray, fontFamily: Fonts.titilliumWeb }}>Chargement de la carte...</Text>
+            <Text style={{ marginTop: 12, color: Colors.gray, fontFamily: Fonts.regular }}>Chargement de la carte...</Text>
           </View>
         )}
         {mapVisible && <Mapbox.MapView
@@ -698,18 +698,18 @@ const styles = StyleSheet.create({
   },
   phaseStripText: {
     fontSize: 11,
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     color: Colors.primary,
     letterSpacing: 0.2,
   },
   screenTitle: {
     fontSize: 19,
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     color: Colors.black,
   },
   screenSubtitle: {
     fontSize: 13,
-    fontFamily: Fonts.titilliumWebSemiBold,
+    fontFamily: Fonts.semiBold,
     color: Colors.gray,
     marginTop: 4,
     lineHeight: 18,
@@ -727,7 +727,7 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 12,
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     color: Colors.gray,
   },
   shareBtn: {
@@ -826,25 +826,25 @@ const styles = StyleSheet.create({
   },
   riderLabel: {
     fontSize: 9,
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     color: Colors.mediumGray,
     letterSpacing: 0.8,
   },
   riderName: {
     fontSize: 17,
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     color: Colors.black,
     marginTop: 2,
   },
   riderPhone: {
     fontSize: 13,
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     color: Colors.gray,
     marginTop: 2,
   },
   riderPhoneMuted: {
     fontSize: 12,
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     color: Colors.mediumGray,
     marginTop: 2,
     fontStyle: 'italic',
@@ -879,13 +879,13 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 10,
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     color: Colors.gray,
     letterSpacing: 0.5,
   },
   statValue: {
     fontSize: 16,
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     color: Colors.black,
     marginTop: 4,
   },
@@ -913,17 +913,17 @@ const styles = StyleSheet.create({
   },
   stopLabel: {
     fontSize: 9,
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     color: Colors.gray,
   },
   stopValue: {
     fontSize: 18,
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     color: Colors.black,
   },
   liveTimerText: {
     fontSize: 11,
-    fontFamily: Fonts.titilliumWebSemiBold,
+    fontFamily: Fonts.semiBold,
     color: '#D97706',
   },
   stopActionBtn: {
@@ -939,7 +939,7 @@ const styles = StyleSheet.create({
   stopActionText: {
     color: Colors.white,
     fontSize: 12,
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
   },
 
   locationRow: {
@@ -963,13 +963,13 @@ const styles = StyleSheet.create({
   },
   locLabel: {
     fontSize: 10,
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     color: Colors.gray,
     letterSpacing: 1,
   },
   locValue: {
     fontSize: 14,
-    fontFamily: Fonts.titilliumWebSemiBold,
+    fontFamily: Fonts.semiBold,
     color: Colors.black,
     marginTop: 2,
   },
@@ -998,7 +998,7 @@ const styles = StyleSheet.create({
   primaryActionText: {
     color: Colors.white,
     fontSize: 16,
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     letterSpacing: 1,
   },
   disabledBtn: {
@@ -1021,7 +1021,7 @@ const styles = StyleSheet.create({
   },
   deliveryInfoTitle: {
     fontSize: 12,
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     color: Colors.gray,
     letterSpacing: 1,
   },
@@ -1036,12 +1036,12 @@ const styles = StyleSheet.create({
   },
   deliveryInfoLabel: {
     fontSize: 10,
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     color: Colors.gray,
   },
   deliveryInfoValue: {
     fontSize: 14,
-    fontFamily: Fonts.titilliumWebSemiBold,
+    fontFamily: Fonts.semiBold,
     color: Colors.black,
     marginTop: 2,
   },
@@ -1071,7 +1071,7 @@ const styles = StyleSheet.create({
   },
   deliveryMetaText: {
     fontSize: 11,
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     color: Colors.black,
   },
   fragileBadge: {

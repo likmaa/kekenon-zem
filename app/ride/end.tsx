@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 20,
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     color: Colors.gray,
   },
   content: {
@@ -243,13 +243,13 @@ const styles = StyleSheet.create({
   },
   mainTitle: {
     fontSize: 26,
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     color: Colors.black,
     textAlign: 'center',
   },
   subTitle: {
     fontSize: 15,
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     color: Colors.gray,
     textAlign: 'center',
     marginTop: 8,
@@ -269,14 +269,14 @@ const styles = StyleSheet.create({
   },
   receiptLabel: {
     fontSize: 11,
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     color: Colors.gray,
     letterSpacing: 1,
     marginBottom: 8,
   },
   amountValue: {
     fontSize: 34,
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     color: Colors.primary,
   },
   receiptDivider: {
@@ -306,12 +306,12 @@ const styles = StyleSheet.create({
   },
   detailLabel: {
     fontSize: 11,
-    fontFamily: Fonts.titilliumWebSemiBold,
+    fontFamily: Fonts.semiBold,
     color: Colors.gray,
   },
   detailValue: {
     fontSize: 18,
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     color: Colors.black,
     marginTop: 2,
   },
@@ -330,7 +330,7 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: 11,
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     color: Colors.gray,
     flex: 1,
   },
@@ -348,7 +348,7 @@ const styles = StyleSheet.create({
   primaryBtnText: {
     color: Colors.white,
     fontSize: 15,
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     letterSpacing: 1,
   },
 });

@@ -543,9 +543,9 @@ function PickupScreenInner() {
         {(!mapReady || !mapVisible) && (
           <View style={styles.mapLoader}>
             <ActivityIndicator size="large" color={Colors.primary} />
-            <Text style={{ fontSize: 18, fontFamily: Fonts.titilliumWebBold, marginTop: 12, color: Colors.black }}>{passengerName}</Text>
+            <Text style={{ fontSize: 18, fontFamily: Fonts.bold, marginTop: 12, color: Colors.black }}>{passengerName}</Text>
             <Text style={styles.mapLoaderText}>Chargement de l'itinéraire...</Text>
-            <Text style={{ fontSize: 14, fontFamily: Fonts.titilliumWeb, color: Colors.gray, marginTop: 4, textAlign: 'center', paddingHorizontal: 20 }}>{pickupAddress}</Text>
+            <Text style={{ fontSize: 14, fontFamily: Fonts.regular, color: Colors.gray, marginTop: 4, textAlign: 'center', paddingHorizontal: 20 }}>{pickupAddress}</Text>
           </View>
         )}
         {mapVisible && <Mapbox.MapView
@@ -815,18 +815,18 @@ const styles = StyleSheet.create({
   },
   phaseStripText: {
     fontSize: 11,
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     color: Colors.primary,
     letterSpacing: 0.2,
   },
   screenTitle: {
     fontSize: 19,
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     color: Colors.black,
   },
   screenSubtitle: {
     fontSize: 13,
-    fontFamily: Fonts.titilliumWebSemiBold,
+    fontFamily: Fonts.semiBold,
     color: Colors.gray,
     marginTop: 4,
     lineHeight: 18,
@@ -844,7 +844,7 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 12,
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     color: Colors.gray,
   },
   etaBadge: {
@@ -859,7 +859,7 @@ const styles = StyleSheet.create({
   etaText: {
     color: Colors.primary,
     fontSize: 14,
-    fontFamily: Fonts.titilliumWebBold
+    fontFamily: Fonts.bold
   },
 
   mapContainer: {
@@ -876,7 +876,7 @@ const styles = StyleSheet.create({
   },
   mapLoaderText: {
     marginTop: 12,
-    fontFamily: Fonts.titilliumWebSemiBold,
+    fontFamily: Fonts.semiBold,
     color: Colors.primary,
     fontSize: 14,
   },
@@ -954,7 +954,7 @@ const styles = StyleSheet.create({
   passengerNameText: {
     color: Colors.black,
     fontSize: 17,
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
   },
   ratingRow: {
     flexDirection: 'row',
@@ -964,7 +964,7 @@ const styles = StyleSheet.create({
   },
   ratingText: {
     fontSize: 13,
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     color: Colors.gray,
   },
   actionButtonsRow: {
@@ -988,7 +988,7 @@ const styles = StyleSheet.create({
   },
   mapsBtnText: {
     color: Colors.white,
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 13,
   },
   roundIconBtn: {
@@ -1028,13 +1028,13 @@ const styles = StyleSheet.create({
   },
   locLabel: {
     fontSize: 10,
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     color: Colors.gray,
     letterSpacing: 1,
   },
   locValue: {
     fontSize: 15,
-    fontFamily: Fonts.titilliumWebSemiBold,
+    fontFamily: Fonts.semiBold,
     color: Colors.black,
     marginTop: 2,
   },
@@ -1047,13 +1047,13 @@ const styles = StyleSheet.create({
   },
   fareLabelSmall: {
     fontSize: 11,
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     color: Colors.gray,
     letterSpacing: 0.5,
   },
   fareAmountLarge: {
     fontSize: 24,
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     color: '#10B981',
     marginTop: 2,
   },
@@ -1076,12 +1076,12 @@ const styles = StyleSheet.create({
   timerLabel: {
     color: Colors.gray,
     fontSize: 12,
-    fontFamily: Fonts.titilliumWebSemiBold,
+    fontFamily: Fonts.semiBold,
   },
   timerValue: {
     color: Colors.black,
     fontSize: 18,
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
   },
   timerValueAlert: {
     color: Colors.error,
@@ -1096,7 +1096,7 @@ const styles = StyleSheet.create({
   },
   feeText: {
     color: Colors.error,
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 13,
   },
 
@@ -1110,7 +1110,7 @@ const styles = StyleSheet.create({
   emptyTitle: {
     color: Colors.black,
     fontSize: 20,
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     marginTop: 20,
     marginBottom: 30
   },
@@ -1122,7 +1122,7 @@ const styles = StyleSheet.create({
   },
   homeBtnText: {
     color: Colors.white,
-    fontFamily: Fonts.titilliumWebBold
+    fontFamily: Fonts.bold
   },
 
   bottomBar: {
@@ -1165,7 +1165,7 @@ const styles = StyleSheet.create({
   primaryActionText: {
     color: Colors.white,
     fontSize: 16,
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     letterSpacing: 1,
   },
   disabledBtn: {

@@ -113,13 +113,13 @@ const styles = StyleSheet.create({
         zIndex: 1,
     },
     actionLabel: {
-        fontFamily: Fonts.titilliumWeb,
+        fontFamily: Fonts.regular,
         fontSize: 13,
         color: Colors.gray,
         marginBottom: 2,
     },
     valueText: {
-        fontFamily: Fonts.titilliumWebBold,
+        fontFamily: Fonts.bold,
         fontSize: 20,
         color: Colors.black,
     },

@@ -59,23 +59,23 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.white },
   content: { padding: 24, paddingVertical: 60, alignItems: 'center' },
   successIconContainer: { marginBottom: 20 },
-  mainTitle: { fontSize: 24, fontFamily: Fonts.titilliumWebBold, color: Colors.black, textAlign: 'center', marginBottom: 8 },
-  subTitle: { fontSize: 16, fontFamily: Fonts.titilliumWeb, color: Colors.gray, textAlign: 'center', marginBottom: 32 },
+  mainTitle: { fontSize: 24, fontFamily: Fonts.bold, color: Colors.black, textAlign: 'center', marginBottom: 8 },
+  subTitle: { fontSize: 16, fontFamily: Fonts.regular, color: Colors.gray, textAlign: 'center', marginBottom: 32 },
 
   card: { backgroundColor: '#F8FAFC', borderRadius: 24, padding: 24, width: '100%', borderWidth: 1, borderColor: '#E2E8F0', marginBottom: 32 },
   earningsRow: { alignItems: 'center', marginBottom: 20 },
-  label: { fontSize: 11, fontFamily: Fonts.titilliumWebBold, color: Colors.gray, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 },
-  amountValue: { fontSize: 32, fontFamily: Fonts.titilliumWebBold, color: Colors.primary },
+  label: { fontSize: 11, fontFamily: Fonts.bold, color: Colors.gray, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 },
+  amountValue: { fontSize: 32, fontFamily: Fonts.bold, color: Colors.primary },
 
   divider: { height: 1, backgroundColor: '#E2E8F0', marginBottom: 20, borderStyle: 'dashed', borderRadius: 1 },
 
   otherStats: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center' },
   statBox: { alignItems: 'center', flex: 1 },
-  statLabel: { fontSize: 11, fontFamily: Fonts.titilliumWebSemiBold, color: Colors.gray, marginTop: 4 },
-  statValue: { fontSize: 18, fontFamily: Fonts.titilliumWebBold, color: Colors.black, marginTop: 2 },
+  statLabel: { fontSize: 11, fontFamily: Fonts.semiBold, color: Colors.gray, marginTop: 4 },
+  statValue: { fontSize: 18, fontFamily: Fonts.bold, color: Colors.black, marginTop: 2 },
 
   verticalDivider: { width: 1, height: 40, backgroundColor: '#E2E8F0' },
 
   primaryBtn: { backgroundColor: Colors.black, width: '100%', borderRadius: 16, height: 60, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10 },
-  primaryBtnText: { color: Colors.white, fontSize: 16, fontFamily: Fonts.titilliumWebBold },
+  primaryBtnText: { color: Colors.white, fontSize: 16, fontFamily: Fonts.bold },
 });

@@ -187,12 +187,12 @@ export default function DriverStatsScreen() {
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {loading && (
-          <Text style={{ fontFamily: Fonts.titilliumWeb, fontSize: 14, color: Colors.gray, marginBottom: 12 }}>
+          <Text style={{ fontFamily: Fonts.regular, fontSize: 14, color: Colors.gray, marginBottom: 12 }}>
             Chargement de vos statistiques...
           </Text>
         )}
         {error && (
-          <Text style={{ fontFamily: Fonts.titilliumWeb, fontSize: 14, color: 'red', marginBottom: 12 }}>
+          <Text style={{ fontFamily: Fonts.regular, fontSize: 14, color: 'red', marginBottom: 12 }}>
             {error}
           </Text>
         )}
@@ -258,7 +258,7 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.lightGray,
   },
   headerTitle: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 24,
     color: Colors.black,
     marginBottom: 16,
@@ -284,12 +284,12 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   periodText: {
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     fontSize: 14,
     color: Colors.gray,
   },
   periodTextActive: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     color: Colors.primary,
   },
   scrollContent: {
@@ -306,7 +306,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
   },
   ratingLabel: {
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     fontSize: 16,
     color: 'rgba(255,255,255,0.8)',
   },
@@ -316,13 +316,13 @@ const styles = StyleSheet.create({
     marginVertical: 8,
   },
   ratingValue: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 48,
     color: 'white',
     marginLeft: 8,
   },
   ratingSubtext: {
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     fontSize: 13,
     color: 'rgba(255,255,255,0.6)',
   },
@@ -342,18 +342,18 @@ const styles = StyleSheet.create({
     position: 'absolute',
   },
   gaugeValue: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 18,
   },
   statLabel: {
-    fontFamily: Fonts.titilliumWebSemiBold,
+    fontFamily: Fonts.semiBold,
     fontSize: 14,
     color: Colors.black,
     marginTop: 12,
     textAlign: 'center',
   },
   sectionTitle: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 18,
     color: Colors.black,
     marginBottom: 8,
@@ -367,13 +367,13 @@ const styles = StyleSheet.create({
   },
   statText: {
     flex: 1,
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     fontSize: 16,
     color: Colors.black,
     marginLeft: 16,
   },
   statValue: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 16,
     color: Colors.black,
   },

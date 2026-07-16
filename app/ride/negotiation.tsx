@@ -330,7 +330,7 @@ const styles = StyleSheet.create({
   },
   loaderText: {
     marginTop: 16,
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 16,
     color: Colors.gray,
   },
@@ -351,12 +351,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerTitle: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 18,
     color: Colors.black,
   },
   headerSub: {
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     fontSize: 13,
     color: Colors.gray,
     marginTop: 1,
@@ -376,7 +376,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   routeTitle: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 14,
     color: Colors.black,
   },
@@ -394,7 +394,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   routeAddr: {
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     fontSize: 13,
     color: Colors.black,
     flex: 1,
@@ -439,7 +439,7 @@ const styles = StyleSheet.create({
     borderColor: '#EFEFEF',
   },
   proposedFare: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 20,
     marginBottom: 4,
   },
@@ -450,7 +450,7 @@ const styles = StyleSheet.create({
     color: '#F9A825',
   },
   msgTime: {
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     fontSize: 11,
   },
   timeRight: {
@@ -468,7 +468,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   acceptBtnText: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 13,
     color: Colors.black,
   },
@@ -490,7 +490,7 @@ const styles = StyleSheet.create({
     borderColor: '#E8ECF4',
     borderRadius: 14,
     paddingHorizontal: 16,
-    fontFamily: Fonts.titilliumWebSemiBold,
+    fontFamily: Fonts.semiBold,
     fontSize: 15,
     color: Colors.black,
     backgroundColor: '#FAFAFB',
@@ -516,7 +516,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   presetChipText: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 12,
     color: Colors.black,
   },

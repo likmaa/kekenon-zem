@@ -447,7 +447,7 @@ export default function DriverProfileScreen() {
         </TouchableOpacity>
 
         {error && (
-          <Text style={{ fontFamily: Fonts.titilliumWeb, fontSize: 13, color: 'red', marginBottom: 8 }}>
+          <Text style={{ fontFamily: Fonts.regular, fontSize: 13, color: 'red', marginBottom: 8 }}>
             {error}
           </Text>
         )}
@@ -566,12 +566,12 @@ export default function DriverProfileScreen() {
           style={{ alignItems: 'center', marginTop: 20, flexDirection: 'row', justifyContent: 'center', gap: 6 }}
         >
           <MaterialCommunityIcons name="trash-can-outline" size={18} color="#94a3b8" />
-          <Text style={{ fontFamily: Fonts.titilliumWeb, fontSize: 14, color: '#94a3b8' }}>Supprimer mon compte</Text>
+          <Text style={{ fontFamily: Fonts.regular, fontSize: 14, color: '#94a3b8' }}>Supprimer mon compte</Text>
         </TouchableOpacity>
 
         {/* Version + DevPanel trigger */}
         <TouchableOpacity onPress={handleDevTrigger} activeOpacity={1} style={{ marginTop: 20, marginBottom: 20, alignItems: 'center' }}>
-          <Text style={{ fontFamily: Fonts.titilliumWeb, fontSize: 12, color: Colors.gray }}>v1.2.0 • Kêkênon Zem</Text>
+          <Text style={{ fontFamily: Fonts.regular, fontSize: 12, color: Colors.gray }}>v1.2.0 • Kêkênon Zem</Text>
         </TouchableOpacity>
 
       </ScrollView>
@@ -590,7 +590,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
   },
   headerTitle: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 24,
     color: Colors.black,
   },
@@ -604,12 +604,12 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
   },
   statusLabel: {
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     fontSize: 13,
     color: Colors.gray,
   },
   statusValue: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 15,
   },
   statusOnline: {
@@ -638,7 +638,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   driverName: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 22,
     color: Colors.black,
   },
@@ -652,13 +652,13 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   ratingText: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 14,
     color: '#FFA000',
     marginLeft: 6,
   },
   sectionTitle: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 16,
     color: Colors.gray,
     marginBottom: 12,
@@ -680,12 +680,12 @@ const styles = StyleSheet.create({
   },
   menuText: {
     flex: 1,
-    fontFamily: Fonts.titilliumWebSemiBold,
+    fontFamily: Fonts.semiBold,
     fontSize: 16,
     color: Colors.black,
   },
   menuSubText: {
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     fontSize: 13,
     color: Colors.gray,
   },
@@ -698,7 +698,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   docStatus: {
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     fontSize: 13,
     marginTop: 2,
   },
@@ -712,7 +712,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarInitials: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 32,
     color: 'white',
   },
@@ -742,6 +742,6 @@ const styles = StyleSheet.create({
   },
   loaderText: {
     color: 'white',
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
   },
 });

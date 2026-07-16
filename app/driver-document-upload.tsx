@@ -147,10 +147,10 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.lightGray,
   },
   backBtn: { padding: 4 },
-  headerTitle: { fontFamily: Fonts.titilliumWebBold, fontSize: 18, color: Colors.black },
+  headerTitle: { fontFamily: Fonts.bold, fontSize: 18, color: Colors.black },
   content: { padding: 20 },
-  docName: { fontFamily: Fonts.titilliumWebBold, fontSize: 20, color: Colors.black },
-  helper: { fontFamily: Fonts.titilliumWeb, fontSize: 14, color: Colors.gray, marginTop: 4, marginBottom: 16 },
+  docName: { fontFamily: Fonts.bold, fontSize: 20, color: Colors.black },
+  helper: { fontFamily: Fonts.regular, fontSize: 14, color: Colors.gray, marginTop: 4, marginBottom: 16 },
   previewCard: {
     borderRadius: 16,
     backgroundColor: 'white',
@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
   },
-  previewPlaceholderText: { fontFamily: Fonts.titilliumWeb, fontSize: 14, color: Colors.gray },
+  previewPlaceholderText: { fontFamily: Fonts.regular, fontSize: 14, color: Colors.gray },
   secondaryBtn: {
     marginTop: 14,
     borderWidth: 1,
@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
     alignItems: 'center',
   },
-  secondaryBtnText: { fontFamily: Fonts.titilliumWebBold, fontSize: 15, color: Colors.primary },
+  secondaryBtnText: { fontFamily: Fonts.bold, fontSize: 15, color: Colors.primary },
   primaryBtn: {
     marginTop: 10,
     backgroundColor: Colors.primary,
@@ -183,5 +183,5 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: 'center',
   },
-  primaryBtnText: { fontFamily: Fonts.titilliumWebBold, fontSize: 15, color: 'white' },
+  primaryBtnText: { fontFamily: Fonts.bold, fontSize: 15, color: 'white' },
 });

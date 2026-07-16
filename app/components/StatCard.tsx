@@ -50,20 +50,20 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     statValue: {
-        fontFamily: Fonts.titilliumWebBold,
+        fontFamily: Fonts.bold,
         fontSize: 20,
         color: Colors.black,
         marginBottom: 2,
     },
     statLabel: {
-        fontFamily: Fonts.titilliumWeb,
+        fontFamily: Fonts.regular,
         fontSize: 12,
         color: Colors.gray,
         textAlign: 'center',
         lineHeight: 14,
     },
     statSubtitle: {
-        fontFamily: Fonts.titilliumWeb,
+        fontFamily: Fonts.regular,
         fontSize: 10,
         color: Colors.gray,
         textAlign: 'center',

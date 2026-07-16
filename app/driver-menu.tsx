@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#F3F4F6',
   },
   panelTitle: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 22,
     color: Colors.black,
   },
@@ -226,7 +226,7 @@ const styles = StyleSheet.create({
   },
   menuLabel: {
     flex: 1,
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 16,
     color: Colors.black,
   },
@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   versionText: {
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     fontSize: 12,
     color: Colors.gray,
   }

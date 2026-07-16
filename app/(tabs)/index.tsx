@@ -985,12 +985,12 @@ const styles = StyleSheet.create({
     borderRadius: 22,
   },
   headerGreeting: {
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     fontSize: 13,
     color: Colors.gray,
   },
   headerName: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 16,
     color: Colors.black,
   },
@@ -1059,7 +1059,7 @@ const styles = StyleSheet.create({
   },
   summaryErrorText: {
     flex: 1,
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     fontSize: 13,
     color: '#5D4037',
     lineHeight: 18,
@@ -1071,7 +1071,7 @@ const styles = StyleSheet.create({
     minHeight: 120,
   },
   sectionTitle: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 16,
     color: Colors.black,
   },
@@ -1118,7 +1118,7 @@ const styles = StyleSheet.create({
     borderColor: 'white',
   },
   offersInlineBadgeText: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 11,
     color: 'white',
   },
@@ -1126,12 +1126,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   offersInlineTitle: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 16,
     color: 'white',
   },
   offersInlineSub: {
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     fontSize: 13,
     color: 'rgba(255,255,255,0.88)',
     marginTop: 2,
@@ -1170,13 +1170,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   activeStatus: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 14,
     color: 'white',
     letterSpacing: 1,
   },
   activeMsg: {
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     fontSize: 12,
     color: 'rgba(255,255,255,0.7)',
   },
@@ -1204,12 +1204,12 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   subscriptionTitle: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 15,
     color: Colors.black,
   },
   subscriptionDesc: {
-    fontFamily: Fonts.titilliumWeb,
+    fontFamily: Fonts.regular,
     fontSize: 13,
     color: '#4B5563',
     lineHeight: 18,
@@ -1223,7 +1223,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   subscriptionRenewBtnText: {
-    fontFamily: Fonts.titilliumWebBold,
+    fontFamily: Fonts.bold,
     fontSize: 13,
     color: Colors.black,
   },
