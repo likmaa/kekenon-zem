@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, StatusBar, Platform, Linking, Alert, Image, ActivityIndicator, RefreshControl } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useFocusEffect, useIsFocused } from '@react-navigation/native';
 import { Audio } from 'expo-av';
@@ -8,7 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { Colors, Gradients, Shadows } from '../../theme';
 import { Fonts } from '../../font';
-import { useDriverStore } from '../providers/DriverProvider';
+import { useDriverStore, RideTakenError } from '../providers/DriverProvider';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { getImageUrl, withImageVersion } from '../utils/images';
@@ -25,9 +25,9 @@ const debugLocationLog = (...args: unknown[]) => {
 };
 
 // Nouveaux composants
-import { ActionCard } from '../components/ActionCard';
-import { StatCard } from '../components/StatCard';
-import { OnlineToggle } from '../components/OnlineToggle';
+import DriverBalanceCard from '../components/DriverBalanceCard';
+import HelmetOnlineToggle from '../components/HelmetOnlineToggle';
+import SubscriptionModal from '../components/SubscriptionModal';
 import { MonthlyEarningsModal } from '../components/MonthlyEarningsModal';
 import { DriverOffersBottomSheet } from '../components/DriverOffersBottomSheet';
 import { BackgroundLocationBanner } from '../components/BackgroundLocationBanner';
@@ -50,29 +50,8 @@ export default function DriverDashboardScreen() {
   const [driverPhoto, setDriverPhoto] = useState<string | null>(null);
   const [isTogglingOnline, setIsTogglingOnline] = useState(false);
   const [showMonthlyEarningsModal, setShowMonthlyEarningsModal] = useState(false);
-  const [renewingSubscription, setRenewingSubscription] = useState(false);
-
-  const handleRenewSubscription = async () => {
-    setRenewingSubscription(true);
-    try {
-      const res = await apiFetch('/driver/subscription/renew', {
-        method: 'POST',
-      });
-      if (res?.ok) {
-        const data = await res.json();
-        Alert.alert('Abonnement activé', data.message || 'Votre abonnement de 10 courses a été activé.');
-        await refreshProfile();
-        await loadDashboardData();
-      } else {
-        const err = await res?.json().catch(() => ({}));
-        Alert.alert('Erreur', err?.message || "Impossible d'acheter l'abonnement.");
-      }
-    } catch {
-      Alert.alert('Erreur', 'Impossible de contacter le serveur.');
-    } finally {
-      setRenewingSubscription(false);
-    }
-  };
+  const [subscriptionDismissed, setSubscriptionDismissed] = useState(false);
+  const insets = useSafeAreaInsets();
 
 
   const [apiStats, setApiStats] = useState<{
@@ -91,6 +70,7 @@ export default function DriverDashboardScreen() {
     monthFare: 0
   });
   const [walletBalance, setWalletBalance] = useState<number>(0);
+  const [walletBonus, setWalletBonus] = useState<number>(0);
   const [hasUnreadBroadcastNotifications, setHasUnreadBroadcastNotifications] = useState(false);
   const [isDashboardRefreshing, setIsDashboardRefreshing] = useState(false);
   const [initialDashboardLoadDone, setInitialDashboardLoadDone] = useState(false);
@@ -265,6 +245,7 @@ export default function DriverDashboardScreen() {
         if (res?.ok) {
           const data = await res.json();
           setWalletBalance(Number(data.balance) || 0);
+          setWalletBonus(Number(data.bonus_balance) || 0);
         } else {
           walletFailed = true;
         }
@@ -533,64 +514,24 @@ export default function DriverDashboardScreen() {
       try {
         await acceptRequest(rideId);
         setOffersSheetOpen(false);
-        const offer = availableOffers.find(o => o.id === rideId);
-        if (offer && offer.pricing_mode === 'negotiable') {
-          router.push({ pathname: '/ride/negotiation', params: { rideId } });
-        } else {
-          router.push('/pickup');
-        }
+        // Accès DIRECT au détail de la course (plus de bouton « Détails » séparé).
+        router.push({ pathname: '/incoming', params: { rideId } });
       } catch (e) {
-        Alert.alert('Acceptation impossible', e instanceof Error ? e.message : 'Réessayez dans un instant.');
-      }
-    },
-    [acceptRequest, availableOffers, router]
-  );
-
-
-  const handleBidOffer = useCallback(
-    async (rideId: string, fare: number) => {
-      try {
-        const token = await getAuthToken();
-        if (!token) return;
-        
-        const res = await apiFetch(`/driver/rides/${rideId}/bid`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Accept: 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ proposed_fare: fare }),
-        });
-        
-        if (res?.ok) {
+        setOffersSheetOpen(false);
+        if (e instanceof RideTakenError) {
           Alert.alert(
-            'Offre envoyée',
-            `Votre proposition de ${fare} FCFA a été envoyée. Attendez la réponse du passager.`,
-            [{ text: 'Ok', onPress: () => {
-              setOffersSheetOpen(false);
-              // Supprimer temporairement de la vue disponible pour éviter les doublons
-              void declineRequest(rideId);
-            }}]
+            'Course perdue',
+            'Course récupérée par un zem plus rapide. Soyez plus rapide la prochaine fois.',
           );
         } else {
-          const err = await res?.json().catch(() => ({}));
-          Alert.alert('Erreur', err?.message || 'Impossible de soumettre l’offre.');
+          Alert.alert('Acceptation impossible', e instanceof Error ? e.message : 'Réessayez dans un instant.');
         }
-      } catch (e) {
-        Alert.alert('Erreur', 'Impossible de joindre le serveur.');
       }
     },
-    [declineRequest]
+    [acceptRequest, router]
   );
 
-  const handleOfferDetails = useCallback(
-    (rideId: string) => {
-      setOffersSheetOpen(false);
-      router.push({ pathname: '/incoming', params: { rideId } });
-    },
-    [router]
-  );
+
 
 
   // Navigation vers les différentes sections (mémorisées)
@@ -654,48 +595,43 @@ export default function DriverDashboardScreen() {
     }
   }, [loadDashboardData]);
 
+  const subscriptionRemaining = driverProfile?.subscription_remaining_rides ?? null;
+  /** Avoir de l'argent = avoir l'abonnement (renouvellement auto côté serveur).
+   *  Le popup n'apparaît que si solde + bonus ne couvrent pas les 500 F du pack. */
+  const canAffordSubscription = walletBalance + walletBonus >= 500;
+  const showSubscriptionModal =
+    initialDashboardLoadDone &&
+    subscriptionRemaining !== null &&
+    subscriptionRemaining <= 3 &&
+    !canAffordSubscription &&
+    !subscriptionDismissed;
+
+  const activeRideStage = currentRide
+    ? currentRide.status === 'ongoing'
+      ? 'Trajet en cours'
+      : currentRide.status === 'arrived'
+        ? 'Client rejoint'
+        : currentRide.status === 'pickup'
+          ? 'En route vers le client'
+          : 'Course acceptée'
+    : '';
+  const activeRideTarget = currentRide
+    ? (currentRide.status === 'ongoing' || currentRide.status === 'arrived'
+      ? currentRide.dropoff
+      : currentRide.pickup) || 'Ouvrir le détail de la course'
+    : '';
+  const activeRideService = currentRide?.service_type === 'livraison' ? 'Livraison' : 'Course zem';
+
+  React.useEffect(() => {
+    // Réarme le popup une fois la situation rétablie (recharge ou pack reconstitué).
+    if (subscriptionDismissed && (canAffordSubscription || (subscriptionRemaining !== null && subscriptionRemaining > 3))) {
+      setSubscriptionDismissed(false);
+    }
+  }, [subscriptionRemaining, subscriptionDismissed, canAffordSubscription]);
+
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="dark-content" backgroundColor="white" />
-
-      {/* Header Premium */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => router.push('/driver-menu')}
-          style={styles.headerAvatar}
-          accessibilityRole="button"
-          accessibilityLabel={`Menu compte chauffeur, ${driverName}`}
-          accessibilityHint="Ouvre le menu et les réglages du compte"
-        >
-          <LinearGradient
-            colors={Gradients.primary}
-            style={styles.avatarIcon}
-          >
-            {driverPhoto ? (
-              <Image source={{ uri: driverPhoto }} style={styles.avatarImage} />
-            ) : (
-              <Ionicons name="person" size={20} color="white" />
-            )}
-          </LinearGradient>
-          <View>
-            <Text style={styles.headerGreeting}>Bonjour,</Text>
-            <Text style={styles.headerName}>{driverName}</Text>
-          </View>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={() => router.push('/notifications')}
-          style={styles.iconButton}
-          accessibilityRole="button"
-          accessibilityLabel="Notifications"
-          accessibilityHint={
-            hasUnreadBroadcastNotifications ? 'Nouvelles annonces non consultées' : undefined
-          }
-        >
-          <Ionicons name="notifications-outline" size={24} color={Colors.black} />
-          {hasUnreadBroadcastNotifications ? <View style={styles.dotIndicator} /> : null}
-        </TouchableOpacity>
-      </View>
+    <SafeAreaView style={styles.container} edges={['left', 'right']}>
+      <StatusBar barStyle="light-content" backgroundColor="#37BD6B" />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -708,53 +644,53 @@ export default function DriverDashboardScreen() {
           />
         }
       >
+        {/* Top sheet vert : en-tête + solde réunis */}
+        <DriverBalanceCard
+          topInset={insets.top}
+          balance={walletBalance}
+          bonus={walletBonus}
+          onRecharge={() => router.push('/wallet-topup')}
+          header={
+            <View style={styles.sheetHeader}>
+              <TouchableOpacity
+                onPress={() => router.push('/driver-menu')}
+                style={styles.headerAvatar}
+                accessibilityRole="button"
+                accessibilityLabel={`Menu compte chauffeur, ${driverName}`}
+                accessibilityHint="Ouvre le menu et les réglages du compte"
+              >
+                <LinearGradient colors={Gradients.primary} style={styles.avatarIcon}>
+                  {driverPhoto ? (
+                    <Image source={{ uri: driverPhoto }} style={styles.avatarImage} />
+                  ) : (
+                    <Ionicons name="person" size={20} color="white" />
+                  )}
+                </LinearGradient>
+                <View>
+                  <Text style={styles.headerGreetingLight}>Bonjour,</Text>
+                  <Text style={styles.headerNameLight}>{driverName}</Text>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => router.push('/notifications')}
+                style={styles.iconButtonGreen}
+                accessibilityRole="button"
+                accessibilityLabel="Notifications"
+                accessibilityHint={
+                  hasUnreadBroadcastNotifications ? 'Nouvelles annonces non consultées' : undefined
+                }
+              >
+                <Ionicons name="notifications-outline" size={24} color="#FFFFFF" />
+                {hasUnreadBroadcastNotifications ? <View style={styles.dotIndicator} /> : null}
+              </TouchableOpacity>
+            </View>
+          }
+        />
+
         <View style={styles.mainContent}>
 
           <BackgroundLocationBanner />
-
-          {driverProfile && (
-            <View style={[
-              styles.subscriptionBanner,
-              (driverProfile.subscription_remaining_rides ?? 0) <= 0 
-                ? styles.subscriptionAlert 
-                : styles.subscriptionActive
-            ]}>
-              <View style={styles.subscriptionHeader}>
-                <Ionicons 
-                  name={(driverProfile.subscription_remaining_rides ?? 0) <= 0 ? "warning" : "checkmark-circle"} 
-                  size={20} 
-                  color={(driverProfile.subscription_remaining_rides ?? 0) <= 0 ? "#DC2626" : "#059669"} 
-                />
-                <Text style={styles.subscriptionTitle}>
-                  {(driverProfile.subscription_remaining_rides ?? 0) <= 0 
-                    ? "Abonnement épuisé !" 
-                    : `Abonnement actif : ${driverProfile.subscription_remaining_rides} courses`}
-                </Text>
-              </View>
-              <Text style={styles.subscriptionDesc}>
-                {(driverProfile.subscription_remaining_rides ?? 0) <= 0 
-                  ? "Vous ne pouvez plus recevoir de courses. Achetez un pack de 10 courses pour 500 F pour continuer à rouler." 
-                  : "Votre abonnement vous permet d'accepter des courses normalement."}
-              </Text>
-              {(driverProfile.subscription_remaining_rides ?? 0) <= 3 && (
-                <TouchableOpacity
-                  style={styles.subscriptionRenewBtn}
-                  onPress={handleRenewSubscription}
-                  disabled={renewingSubscription}
-                >
-                  {renewingSubscription ? (
-                    <ActivityIndicator size="small" color="black" />
-                  ) : (
-                    <Text style={styles.subscriptionRenewBtnText}>
-                      {(driverProfile.subscription_remaining_rides ?? 0) <= 0 
-                        ? "Activer 10 courses (500 F)" 
-                        : "Recharger 10 courses (500 F)"}
-                    </Text>
-                  )}
-                </TouchableOpacity>
-              )}
-            </View>
-          )}
 
           {dashboardSummaryError ? (
             <View style={styles.summaryErrorBanner} accessibilityRole="alert">
@@ -763,69 +699,9 @@ export default function DriverDashboardScreen() {
             </View>
           ) : null}
 
-          {/* Gains mensuels + solde portefeuille */}
-          <View style={styles.topSection}>
-            <ActionCard
-              icon="trending-up"
-              label="Gains mensuels"
-              value={`${apiStats.monthEarnings.toLocaleString('fr-FR')} FCFA`}
-              onPress={navigateToMonthlyEarnings}
-              fullWidth
-              isWallet={true}
-              accessibilityLabel={`Gains mensuels, ${apiStats.monthEarnings.toLocaleString('fr-FR')} F C F A`}
-              accessibilityHint="Affiche le détail des gains du mois"
-            />
-            <View style={styles.topCardGap} />
-            <ActionCard
-              icon="wallet"
-              label="Solde portefeuille"
-              value={`${walletBalance.toLocaleString('fr-FR')} FCFA`}
-              onPress={() => router.push('/wallet')}
-              fullWidth
-              accessibilityHint="Ouvre le portefeuille et les retraits"
-            />
-          </View>
-
-          {/* Statistiques du jour */}
-          <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionTitle}>Aujourd'hui</Text>
-            {isDashboardRefreshing && initialDashboardLoadDone ? (
-              <ActivityIndicator size="small" color={Colors.primary} accessibilityLabel="Actualisation des statistiques" />
-            ) : null}
-          </View>
-          {isDashboardRefreshing && !initialDashboardLoadDone ? (
-            <View style={styles.statsGrid} accessibilityLabel="Chargement des statistiques du jour">
-              {[0, 1, 2].map((i) => (
-                <View key={i} style={styles.statSkeleton} />
-              ))}
-            </View>
-          ) : (
-            <View style={styles.statsGrid}>
-              <StatCard
-                icon="car-sport"
-                value={todayStats.completedRides}
-                label="Courses"
-                color={Colors.primary}
-              />
-              <StatCard
-                icon="time"
-                value={todayStats.scheduledRides}
-                label="Actif + offres"
-                subtitle={todayStats.activePlusOffersHint}
-                color={Colors.warning}
-              />
-              <StatCard
-                icon="cash"
-                value={`${todayStats.totalEarnings.toLocaleString('fr-FR')} F`}
-                label="Gains"
-                color={Colors.success}
-              />
-            </View>
-          )}
-
-          {/* Toggle Online principal */}
-          <View style={styles.toggleWrapper}>
-            <OnlineToggle
+          {/* Contrôle principal : casque « en ligne / hors ligne » */}
+          <View style={styles.helmetPanel}>
+            <HelmetOnlineToggle
               isOnline={online}
               onToggle={handleToggleOnline}
               loading={isTogglingOnline}
@@ -861,60 +737,65 @@ export default function DriverDashboardScreen() {
             </TouchableOpacity>
           ) : null}
 
-          {/* Actions Rapides */}
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Actions rapides</Text>
-          </View>
-          <View style={styles.fastActions}>
-            <ActionCard
-              icon="map-outline"
-              label="Carte"
-              onPress={navigateToLocation}
-              accessibilityHint="Ouvre la carte à votre position actuelle"
-            />
-            <ActionCard
-              icon="time-outline"
-              label="Historique"
-              onPress={navigateToRides}
-              accessibilityHint="Ouvre l’historique des courses"
-            />
-          </View>
-
           {/* COURSE ACTIVE */}
           {currentRide && (
             <TouchableOpacity
-              style={[styles.activeRideBox, Shadows.lg]}
+              style={styles.activeRideBox}
+              activeOpacity={0.86}
               accessibilityRole="button"
               accessibilityLabel={`Course en cours, statut ${currentRide.status}`}
               accessibilityHint="Ouvre l’écran de la course active"
               onPress={() => {
-                 if (currentRide.status === 'incoming') {
+                 if (currentRide.status === 'incoming' || currentRide.status === 'pickup') {
+                   // Écran détail = hub après acceptation ; « Aller chercher » y mène à la carte.
                    router.push({ pathname: '/incoming', params: { rideId: currentRide.id } });
-                 } else if (currentRide.status === 'pickup' || currentRide.status === 'arrived') {
-                   if (currentRide.pricing_mode === 'negotiable' && !currentRide.negotiated_fare) {
-                     router.push({ pathname: '/ride/negotiation', params: { rideId: currentRide.id } });
-                   } else {
-                     router.push('/pickup');
-                   }
+                 } else if (currentRide.status === 'arrived') {
+                   router.push('/pickup');
                  } else if (currentRide.status === 'ongoing') {
-                   router.push('/ride-ongoing');
+                   router.push('/pickup');
                  }
-
               }}
             >
               <LinearGradient
-                colors={Gradients.primary}
+                colors={['#161616', '#282828']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
                 style={styles.activeRideGradient}
               >
-                <View style={styles.activeRideHeader}>
+                <View style={styles.activeRideAccent} />
+                <View style={styles.activeRideMain}>
                   <View style={styles.activeIconCircle}>
-                    <Ionicons name="car-sport" size={24} color="white" />
+                    <Ionicons
+                      name={currentRide.service_type === 'livraison' ? 'cube-outline' : 'navigate'}
+                      size={22}
+                      color={Colors.dark}
+                    />
                   </View>
                   <View style={styles.activeInfo}>
-                    <Text style={styles.activeStatus}>COURSE EN COURS</Text>
-                    <Text style={styles.activeMsg}>Appuyez pour voir les détails</Text>
+                    <View style={styles.activeStatusRow}>
+                      <View style={styles.activeLiveDot} />
+                      <Text style={styles.activeStatus}>{activeRideStage}</Text>
+                    </View>
+                    <Text style={styles.activeTarget} numberOfLines={1}>{activeRideTarget}</Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={24} color="rgba(255,255,255,0.5)" />
+                  <View style={styles.activeResumeButton}>
+                    <Text style={styles.activeResumeText}>Reprendre</Text>
+                    <Ionicons name="arrow-forward" size={17} color={Colors.dark} />
+                  </View>
+                </View>
+                <View style={styles.activeRideFooter}>
+                  <View style={styles.activeMetaItem}>
+                    <Ionicons
+                      name={currentRide.service_type === 'livraison' ? 'cube-outline' : 'bicycle-outline'}
+                      size={15}
+                      color="rgba(255,255,255,0.64)"
+                    />
+                    <Text style={styles.activeMetaText}>{activeRideService}</Text>
+                  </View>
+                  <View style={styles.activeMetaDivider} />
+                  <Text style={styles.activeFare}>
+                    {Number(currentRide.negotiated_fare ?? currentRide.fare ?? 0).toLocaleString('fr-FR')} FCFA
+                  </Text>
                 </View>
               </LinearGradient>
             </TouchableOpacity>
@@ -933,10 +814,19 @@ export default function DriverDashboardScreen() {
           getDistanceToPickup={getDistanceToPickup}
           getOfferTimerProgress={getOfferTimerProgress}
           onAccept={handleAcceptOffer}
-          onDetails={handleOfferDetails}
-          onBid={handleBidOffer}
         />
       ) : null}
+
+      {/* POPUP ABONNEMENT */}
+      <SubscriptionModal
+        visible={showSubscriptionModal}
+        remainingRides={subscriptionRemaining ?? 0}
+        onRecharge={() => {
+          setSubscriptionDismissed(true);
+          router.push({ pathname: '/wallet-topup', params: { minAmount: '500' } });
+        }}
+        onClose={() => setSubscriptionDismissed(true)}
+      />
 
       {/* MODALE GAINS MENSUELS */}
       <MonthlyEarningsModal
@@ -1013,14 +903,38 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'white',
   },
+  sheetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  headerGreetingLight: {
+    fontFamily: Fonts.regular,
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.85)',
+  },
+  headerNameLight: {
+    fontFamily: Fonts.bold,
+    fontSize: 16,
+    color: '#FFFFFF',
+  },
+  iconButtonGreen: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 
   /* CONTENT */
   scrollContent: {
     flexGrow: 1,
+    paddingBottom: 130, // dégage la barre d'onglets flottante
   },
   mainContent: {
     paddingHorizontal: 20,
-    paddingTop: 10,
+    paddingTop: 16,
   },
 
   /* SECTIONS */
@@ -1087,6 +1001,14 @@ const styles = StyleSheet.create({
   toggleWrapper: {
     marginBottom: 8,
   },
+  helmetPanel: {
+    backgroundColor: '#FDD835',
+    borderRadius: 28,
+    paddingVertical: 24,
+    paddingHorizontal: 16,
+    marginTop: 4,
+    marginBottom: 16,
+  },
 
   offersInlineBar: {
     borderRadius: 20,
@@ -1146,39 +1068,112 @@ const styles = StyleSheet.create({
 
   /* ACTIVE RIDE */
   activeRideBox: {
-    marginVertical: 10,
-    borderRadius: 24,
+    marginTop: 12,
+    marginBottom: 6,
+    borderRadius: 22,
     overflow: 'hidden' as const,
+    shadowColor: '#111111',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 14,
+    elevation: 7,
   },
   activeRideGradient: {
-    padding: 20,
+    position: 'relative' as const,
+    overflow: 'hidden' as const,
+    padding: 15,
   },
-  activeRideHeader: {
+  activeRideAccent: {
+    position: 'absolute' as const,
+    top: 0,
+    bottom: 0,
+    left: 0,
+    width: 5,
+    backgroundColor: Colors.primary,
+  },
+  activeRideMain: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    gap: 15,
+    gap: 11,
   },
   activeIconCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    width: 44,
+    height: 44,
+    borderRadius: 15,
+    backgroundColor: Colors.primary,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
   },
   activeInfo: {
     flex: 1,
+    minWidth: 0,
+  },
+  activeStatusRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 6,
+  },
+  activeLiveDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: '#45D576',
   },
   activeStatus: {
     fontFamily: Fonts.bold,
-    fontSize: 14,
-    color: 'white',
-    letterSpacing: 1,
+    fontSize: 13,
+    color: '#FFFFFF',
   },
-  activeMsg: {
+  activeTarget: {
+    marginTop: 3,
     fontFamily: Fonts.regular,
     fontSize: 12,
-    color: 'rgba(255,255,255,0.7)',
+    color: 'rgba(255,255,255,0.62)',
+  },
+  activeResumeButton: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+    borderRadius: 12,
+    backgroundColor: Colors.primary,
+  },
+  activeResumeText: {
+    fontFamily: Fonts.bold,
+    fontSize: 12,
+    color: Colors.dark,
+  },
+  activeRideFooter: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    marginTop: 13,
+    paddingTop: 11,
+    paddingLeft: 4,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.08)',
+  },
+  activeMetaItem: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 6,
+  },
+  activeMetaText: {
+    fontFamily: Fonts.medium,
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.64)',
+  },
+  activeMetaDivider: {
+    width: 4,
+    height: 4,
+    marginHorizontal: 9,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+  },
+  activeFare: {
+    fontFamily: Fonts.bold,
+    fontSize: 13,
+    color: Colors.primary,
   },
 
   /* SUBSCRIPTION */

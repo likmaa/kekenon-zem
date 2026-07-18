@@ -61,6 +61,8 @@ export type Ride = {
   status: RideStatus;
   startedAt?: number;
   completedAt?: number;
+  cancelledAt?: number;
+  createdAt?: number;
   pickupLat?: number;
   pickupLon?: number;
   dropoffLat?: number;
@@ -91,7 +93,31 @@ export type Ride = {
   paymentMethod?: 'cash' | 'card' | 'm-money';
   pricing_mode?: 'fixed' | 'negotiable';
   negotiated_fare?: number;
+  /** Négociation verbale : true si course fixe OU passager a confirmé le chauffeur.
+   *  Contrôle l'activation de « Aller chercher mon client » sur l'écran détail. */
+  negotiationConfirmed?: boolean;
 };
+
+const getRideActivityTimestamp = (ride: Ride): number =>
+  ride.completedAt ?? ride.cancelledAt ?? ride.createdAt ?? ride.startedAt ?? 0;
+
+const sortRidesMostRecentFirst = (rides: Ride[]): Ride[] =>
+  rides.sort((a, b) => {
+    const dateDifference = getRideActivityTimestamp(b) - getRideActivityTimestamp(a);
+    if (dateDifference !== 0) return dateDifference;
+
+    const aId = Number(a.id);
+    const bId = Number(b.id);
+    return Number.isFinite(aId) && Number.isFinite(bId) ? bId - aId : 0;
+  });
+
+/** Erreur d'acceptation quand la course a déjà été prise par un autre chauffeur. */
+export class RideTakenError extends Error {
+  constructor(message = 'Course récupérée par un autre chauffeur.') {
+    super(message);
+    this.name = 'RideTakenError';
+  }
+}
 
 export type NavPref = 'auto' | 'waze' | 'gmaps';
 
@@ -140,7 +166,7 @@ export function DriverProvider({ children }: { children: React.ReactNode }) {
       const newList = typeof updater === 'function' ? updater(prev) : updater;
       if (!Array.isArray(newList)) return prev;
 
-      return newList.reduce((acc: Ride[], current: Ride) => {
+      const deduplicated = newList.reduce((acc: Ride[], current: Ride) => {
         if (!current || !current.id) return acc;
         const currentId = String(current.id);
         const alreadyExists = acc.find(item => String(item.id) === currentId);
@@ -153,6 +179,8 @@ export function DriverProvider({ children }: { children: React.ReactNode }) {
           String(item.id) === currentId ? (isTerminal(current.status) ? current : item) : item
         );
       }, []);
+
+      return sortRidesMostRecentFirst(deduplicated);
     });
   }, []);
   const [navPref, setNavPref] = useState<NavPref>('auto');
@@ -210,6 +238,8 @@ export function DriverProvider({ children }: { children: React.ReactNode }) {
       status: mapBackendRideStatus(payload.status),
       startedAt: payload.started_at ? new Date(payload.started_at).getTime() : undefined,
       completedAt: payload.completed_at ? new Date(payload.completed_at).getTime() : undefined,
+      cancelledAt: payload.cancelled_at ? new Date(payload.cancelled_at).getTime() : undefined,
+      createdAt: payload.created_at ? new Date(payload.created_at).getTime() : undefined,
       pickupLat: payload.pickup_lat != null ? Number(payload.pickup_lat) : undefined,
       pickupLon: payload.pickup_lng != null ? Number(payload.pickup_lng) : undefined,
       dropoffLat: payload.dropoff_lat != null ? Number(payload.dropoff_lat) : undefined,
@@ -238,6 +268,11 @@ export function DriverProvider({ children }: { children: React.ReactNode }) {
       paymentMethod: payload.payment_method ?? 'cash',
       pricing_mode: payload.pricing_mode,
       negotiated_fare: payload.negotiated_fare != null ? Number(payload.negotiated_fare) : undefined,
+      // Course fixe : toujours confirmée. Négociable : true seulement après validation passager.
+      negotiationConfirmed:
+        typeof payload.negotiation_confirmed === 'boolean'
+          ? payload.negotiation_confirmed
+          : (payload.pricing_mode ?? 'fixed') !== 'negotiable' || payload.negotiation_confirmed_at != null,
     };
   }, [mapBackendRideStatus]);
 
@@ -470,10 +505,15 @@ export function DriverProvider({ children }: { children: React.ReactNode }) {
       const rides = json.map(r => mapApiRideToState(r)).filter((r): r is Ride => !!r);
 
       setAvailableOffers(prev => {
-        // Merge without duplicates
-        const existingIds = new Set(prev.map(p => p.id));
-        const newRides = rides.filter(r => !existingIds.has(r.id));
-        return [...prev, ...newRides];
+        // Réconciliation avec le serveur : on garde les offres encore proposées
+        // (référence conservée pour ne pas casser les timers) et on retire celles
+        // qui ne le sont plus (acceptée, annulée, expirée) — sinon une offre
+        // fantôme peut faire réapparaître le sheet en boucle.
+        const serverIds = new Set(rides.map(r => r.id));
+        const kept = prev.filter(p => serverIds.has(p.id));
+        const keptIds = new Set(kept.map(k => k.id));
+        const added = rides.filter(r => !keptIds.has(r.id));
+        return [...kept, ...added];
       });
     } catch {
     }
@@ -822,9 +862,34 @@ export function DriverProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (!res || !res.ok) {
+        // Course déjà prise par un plus rapide (422 RIDE_NOT_AVAILABLE) : on ne
+        // remet PAS l'offre dans la liste — on la retire proprement et on signale
+        // « course perdue » plutôt qu'une erreur technique.
+        const body = res ? await res.json().catch(() => null) : null;
+        const taken = res?.status === 422 || body?.code === 'RIDE_NOT_AVAILABLE';
+        setCurrentRide(null);
+        if (taken) {
+          setAvailableOffers(prev => prev.filter(r => r.id !== targetId));
+          throw new RideTakenError();
+        }
+        // Panne transitoire : on rétablit l'offre pour réessayer.
+        setAvailableOffers(prev => (prev.some(r => r.id === targetId) ? prev : [rideSnapshot, ...prev]));
         throw new Error('Le serveur a refusé la confirmation');
       }
+
+      // Succès : hydrater la course réelle (pricing_mode, negotiationConfirmed, etc.)
+      const data = await res.json().catch(() => null);
+      setCurrentRide(prev => {
+        if (!prev || prev.id !== targetId) return prev;
+        const isNegotiable = (data?.pricing_mode ?? rideSnapshot.pricing_mode) === 'negotiable';
+        return {
+          ...prev,
+          pricing_mode: data?.pricing_mode ?? prev.pricing_mode,
+          negotiationConfirmed: data?.negotiation_confirmed ?? !isNegotiable,
+        };
+      });
     } catch (error) {
+      if (error instanceof RideTakenError) throw error;
       rollback();
       throw error;
     }
@@ -1061,6 +1126,12 @@ export function DriverProvider({ children }: { children: React.ReactNode }) {
             setCurrentRide(prev => (prev && String(prev.id) === rideIdStr ? null : prev));
           }
         });
+        // Course prise par un autre chauffeur : retrait instantané, zéro résidu.
+        channel.bind('ride.taken', (data: { rideId: string | number; winnerDriverId: number }) => {
+          if (cancelled) return;
+          const rideIdStr = String(data.rideId);
+          setAvailableOffers(prev => prev.filter(r => String(r.id) !== rideIdStr));
+        });
       } catch (error) {
         console.warn('Realtime driver subscription failed', error);
       }
@@ -1127,6 +1198,32 @@ export function DriverProvider({ children }: { children: React.ReactNode }) {
               { text: 'Démarrer', onPress: () => router.push('/pickup') },
             ],
           );
+        });
+
+        // Négociation verbale : le passager a confirmé (ou refusé) le chauffeur.
+        channel.bind('ride.negotiation.confirmed', (payload: { rideId: string | number; confirmed: boolean; fare?: number }) => {
+          if (cancelled) return;
+          const rideIdStr = String(payload.rideId);
+          if (payload.confirmed) {
+            // Active « Aller chercher mon client » sur l'écran détail (mise à jour en place).
+            setCurrentRide(prev => {
+              if (!prev || String(prev.id) !== rideIdStr) return prev;
+              return {
+                ...prev,
+                negotiationConfirmed: true,
+                negotiated_fare: payload.fare ?? prev.negotiated_fare,
+              };
+            });
+          } else {
+            // Refus passager : la course repart dans le pool, on libère l'écran du chauffeur.
+            setCurrentRide(prev => (prev && String(prev.id) === rideIdStr ? null : prev));
+            setAvailableOffers(prev => prev.filter(r => String(r.id) !== rideIdStr));
+            Alert.alert(
+              'Course annulée',
+              "Le client n'a pas confirmé la course. Elle a été remise à d'autres chauffeurs.",
+            );
+            router.replace('/(tabs)');
+          }
         });
 
       } catch (error) {

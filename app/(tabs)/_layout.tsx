@@ -1,16 +1,14 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors } from '../../theme';
 
 import { useRouter } from 'expo-router';
 import { useDriverStore } from '../providers/DriverProvider';
+import CustomTabBar from '../components/CustomTabBar';
 
 export default function TabLayout() {
   const { driverProfile } = useDriverStore();
   const router = useRouter();
-  const { bottom } = useSafeAreaInsets();
 
   React.useEffect(() => {
     if (driverProfile && !driverProfile.contract_accepted_at) {
@@ -18,16 +16,13 @@ export default function TabLayout() {
     }
   }, [driverProfile, router]);
 
+  const renderTabBar = React.useCallback((props: any) => <CustomTabBar {...props} />, []);
+
   return (
     <Tabs
+      tabBar={renderTabBar}
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: Colors.primary,
-        tabBarStyle: {
-          height: 65 + bottom,
-          paddingBottom: 10 + bottom,
-          paddingTop: 10,
-        },
       }}
     >
       <Tabs.Screen
@@ -35,15 +30,6 @@ export default function TabLayout() {
         options={{
           title: 'Accueil', // Renommé de Dashboard à Accueil pour plus de clarté
           tabBarIcon: ({ color, size }) => <Ionicons name="home" color={color} size={size} />,
-        }}
-      />
-      <Tabs.Screen
-        name="incoming"
-        options={{
-          title: 'Courses',
-          href: null,
-          tabBarStyle: { display: 'none' },
-          tabBarIcon: ({ color, size }) => <Ionicons name="car-sport" color={color} size={size} />,
         }}
       />
       <Tabs.Screen

@@ -7,18 +7,20 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
-  Alert
+  Alert,
+  ImageBackground,
+  StatusBar,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import QRCode from 'react-native-qrcode-svg';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { Colors } from '../../theme';
 import { Fonts } from '../../font';
 import { apiFetch } from '../utils/apiClient';
 import { getPusherClient, unsubscribeChannel } from '../services/pusherClient';
-import { getAuthToken, removeAuthToken } from '../utils/authTokenStorage';
+import { getAuthToken } from '../utils/authTokenStorage';
 
 export default function EndRideScreen() {
   const router = useRouter();
@@ -122,233 +124,401 @@ export default function EndRideScreen() {
     };
   }, [rideId, fetchRideDetails]);
 
-  if (loading) {
-    return (
-      <SafeAreaView style={[styles.container, styles.center]}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>Calcul du reçu final...</Text>
-      </SafeAreaView>
-    );
-  }
-
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.successHeader}>
-          <View style={styles.successIconCircle}>
-            <Ionicons name="checkmark" size={48} color={Colors.white} />
-          </View>
-          <Text style={styles.mainTitle}>Course terminée !</Text>
-          <Text style={styles.subTitle}>Merci pour votre excellent service.</Text>
-        </View>
+    <ImageBackground
+      source={require('../../assets/images/amazone.jpg')}
+      style={styles.background}
+      resizeMode="cover"
+    >
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+      <LinearGradient
+        colors={['rgba(8,8,8,0.42)', 'rgba(8,8,8,0.72)', 'rgba(8,8,8,0.96)']}
+        locations={[0, 0.42, 1]}
+        style={StyleSheet.absoluteFillObject}
+        pointerEvents="none"
+      />
 
-        {paymentLink && (
-          <View style={[styles.receiptCard, { alignItems: 'center', marginBottom: 20 }]}>
-            <Text style={[styles.receiptLabel, { marginBottom: 15 }]}>SCANNER POUR PAYER</Text>
-            <QRCode value={paymentLink} size={180} />
-            <Text style={[styles.subTitle, { marginTop: 10, fontSize: 13 }]}>Demandez au client de scanner ce QR</Text>
+      <SafeAreaView style={styles.container}>
+        {loading ? (
+          <View style={styles.center}>
+            <View style={styles.loadingIcon}>
+              <ActivityIndicator size="large" color={Colors.dark} />
+            </View>
+            <Text style={styles.loadingText}>Calcul du reçu final…</Text>
+          </View>
+        ) : (
+          <View style={styles.screenContent}>
+            <View style={styles.hero}>
+              <View style={styles.successHeader}>
+                <View style={styles.successBadge}>
+                  <View style={styles.successIconCircle}>
+                    <Ionicons name="checkmark" size={22} color={Colors.dark} />
+                  </View>
+                  <Text style={styles.successBadgeText}>Course terminée</Text>
+                </View>
+                <Text style={styles.mainTitle}>Bien joué !</Text>
+                <Text style={styles.subTitle}>Le trajet est terminé. Voici votre reçu.</Text>
+              </View>
+            </View>
+
+            <View style={styles.bottomPanel}>
+              <ScrollView
+                style={styles.panelScroll}
+                contentContainerStyle={styles.content}
+                showsVerticalScrollIndicator={false}
+              >
+                <View style={styles.receiptCard}>
+                  <View style={styles.receiptHeading}>
+                    <View style={styles.receiptHeadingIcon}>
+                      <MaterialCommunityIcons name="wallet-outline" size={20} color={Colors.primary} />
+                    </View>
+                    <Text style={styles.receiptLabel}>Montant de la course</Text>
+                  </View>
+                  <Text style={styles.amountValue}>{fare.toLocaleString('fr-FR')} FCFA</Text>
+
+                  <View style={styles.receiptDivider} />
+
+                  <View style={styles.detailsGrid}>
+                    <View style={styles.detailBox}>
+                      <View style={styles.iconBox}>
+                        <MaterialCommunityIcons name="hand-coin-outline" size={20} color={Colors.primary} />
+                      </View>
+                      <View>
+                        <Text style={styles.detailLabel}>Pourboire</Text>
+                        <Text style={styles.detailValue}>
+                          {tip > 0 ? `${tip.toLocaleString('fr-FR')} F` : '0 F'}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.verticalDivider} />
+
+                    <View style={styles.detailBox}>
+                      <View style={styles.iconBox}>
+                        <Ionicons name="star" size={18} color={Colors.primary} />
+                      </View>
+                      <View>
+                        <Text style={styles.detailLabel}>Note reçue</Text>
+                        <Text style={styles.detailValue}>{rating > 0 ? rating.toFixed(1) : '5.0'}</Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  <View style={styles.infoBox}>
+                    <Ionicons name="information-circle-outline" size={18} color={Colors.primary} />
+                    <Text style={styles.infoText}>
+                      Le pourboire est crédité instantanément sur votre portefeuille.
+                    </Text>
+                  </View>
+                </View>
+
+                {paymentLink ? (
+                  <View style={styles.qrCard}>
+                    <View style={styles.qrHeading}>
+                      <View style={styles.qrIconBox}>
+                        <MaterialCommunityIcons name="qrcode-scan" size={20} color={Colors.dark} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.qrTitle}>Paiement par QR code</Text>
+                        <Text style={styles.qrSubtitle}>Présentez ce code au client.</Text>
+                      </View>
+                    </View>
+                    <View style={styles.qrSurface}>
+                      <QRCode value={paymentLink} size={156} />
+                    </View>
+                  </View>
+                ) : null}
+              </ScrollView>
+
+              <View style={styles.actionContainer}>
+                <TouchableOpacity
+                  style={styles.primaryBtn}
+                  activeOpacity={0.88}
+                  onPress={() => {
+                    while (router.canGoBack()) {
+                      router.back();
+                    }
+                    router.replace('/(tabs)');
+                  }}
+                >
+                  <Text style={styles.primaryBtnText}>Retour à l'accueil</Text>
+                  <Ionicons name="arrow-forward" size={20} color={Colors.dark} />
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
         )}
-
-        <View style={styles.receiptCard}>
-          <View style={styles.receiptTop}>
-            <Text style={styles.receiptLabel}>MONTANT TOTAL PERÇU</Text>
-            <Text style={styles.amountValue}>
-              {fare.toLocaleString('fr-FR')} FCFA
-            </Text>
-          </View>
-
-          <View style={styles.receiptDivider} />
-
-          <View style={styles.detailsGrid}>
-            <View style={styles.detailBox}>
-              <View style={[styles.iconBox, { backgroundColor: '#FEF3C7' }]}>
-                <MaterialCommunityIcons name="hand-coin" size={20} color="#D97706" />
-              </View>
-              <Text style={styles.detailLabel}>Pourboire</Text>
-              <Text style={styles.detailValue}>{tip > 0 ? `${tip} F` : '0 F'}</Text>
-            </View>
-
-            <View style={styles.verticalDivider} />
-
-            <View style={styles.detailBox}>
-              <View style={[styles.iconBox, { backgroundColor: '#E0F2FE' }]}>
-                <Ionicons name="star" size={18} color="#0EA5E9" />
-              </View>
-              <Text style={styles.detailLabel}>Note</Text>
-              <Text style={styles.detailValue}>{rating > 0 ? rating.toFixed(1) : '5.0'}</Text>
-            </View>
-          </View>
-
-          <View style={styles.infoBox}>
-            <Ionicons name="information-circle-outline" size={18} color={Colors.gray} />
-            <Text style={styles.infoText}>Le pourboire est crédité instantanément sur votre portefeuille.</Text>
-          </View>
-        </View>
-
-        <TouchableOpacity
-          style={styles.primaryBtn}
-          onPress={() => {
-            // Clear entire navigation stack to prevent loop
-            while (router.canGoBack()) {
-              router.back();
-            }
-            router.replace('/(tabs)');
-          }}
-        >
-          <Text style={styles.primaryBtnText}>RETOUR À L'ACCUEIL</Text>
-          <Ionicons name="arrow-forward" size={20} color={Colors.white} />
-        </TouchableOpacity>
-      </ScrollView>
-    </SafeAreaView>
+      </SafeAreaView>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
+  background: {
+    flex: 1,
+    backgroundColor: Colors.dark,
+  },
   container: {
     flex: 1,
-    backgroundColor: Colors.white,
+    backgroundColor: 'transparent',
   },
   center: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  loadingIcon: {
+    width: 68,
+    height: 68,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.primary,
   },
   loadingText: {
-    marginTop: 20,
-    fontFamily: Fonts.regular,
-    color: Colors.gray,
+    marginTop: 16,
+    fontFamily: Fonts.semiBold,
+    fontSize: 15,
+    color: Colors.white,
+  },
+  screenContent: {
+    flex: 1,
+  },
+  hero: {
+    flex: 0.31,
+    minHeight: 180,
+    justifyContent: 'flex-end',
+    paddingHorizontal: 20,
+    paddingBottom: 22,
+  },
+  bottomPanel: {
+    flex: 0.69,
+    width: '100%',
+    overflow: 'hidden',
+    backgroundColor: 'rgba(10,10,10,0.96)',
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    borderTopWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)',
+    elevation: 18,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 18,
+  },
+  panelScroll: {
+    flex: 1,
   },
   content: {
-    padding: 24,
-    alignItems: 'center',
-    paddingTop: 60,
+    width: '100%',
+    maxWidth: 560,
+    alignSelf: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
   },
   successHeader: {
     alignItems: 'center',
-    marginBottom: 40,
+  },
+  successBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+    backgroundColor: 'rgba(10,10,10,0.78)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)',
   },
   successIconCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#10B981',
-    justifyContent: 'center',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     alignItems: 'center',
-    marginBottom: 20,
-    elevation: 4,
-    shadowColor: '#10B981',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
+    justifyContent: 'center',
+    backgroundColor: Colors.primary,
+  },
+  successBadgeText: {
+    fontFamily: Fonts.bold,
+    fontSize: 13,
+    color: Colors.white,
   },
   mainTitle: {
-    fontSize: 26,
+    marginTop: 16,
     fontFamily: Fonts.bold,
-    color: Colors.black,
+    fontSize: 34,
+    lineHeight: 38,
+    color: Colors.white,
     textAlign: 'center',
   },
   subTitle: {
-    fontSize: 15,
+    marginTop: 5,
     fontFamily: Fonts.regular,
-    color: Colors.gray,
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.68)',
     textAlign: 'center',
-    marginTop: 8,
   },
   receiptCard: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 24,
-    padding: 24,
     width: '100%',
+    padding: 20,
+    borderRadius: 26,
+    backgroundColor: 'rgba(255,255,255,0.045)',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    marginBottom: 30,
+    borderColor: 'rgba(255,255,255,0.14)',
   },
-  receiptTop: {
+  receiptHeading: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    gap: 9,
+  },
+  receiptHeadingIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(253,216,53,0.12)',
   },
   receiptLabel: {
-    fontSize: 11,
-    fontFamily: Fonts.bold,
-    color: Colors.gray,
-    letterSpacing: 1,
-    marginBottom: 8,
+    fontFamily: Fonts.semiBold,
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.62)',
   },
   amountValue: {
-    fontSize: 34,
+    marginTop: 16,
     fontFamily: Fonts.bold,
+    fontSize: 38,
+    lineHeight: 43,
     color: Colors.primary,
   },
   receiptDivider: {
     height: 1,
-    backgroundColor: '#E2E8F0',
-    marginBottom: 20,
-    borderStyle: 'dashed',
-    borderRadius: 1,
+    marginVertical: 18,
+    backgroundColor: 'rgba(255,255,255,0.12)',
   },
   detailsGrid: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 18,
   },
   detailBox: {
-    alignItems: 'center',
     flex: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
   iconBox: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
+    borderRadius: 13,
     alignItems: 'center',
-    marginBottom: 8,
+    justifyContent: 'center',
+    backgroundColor: 'rgba(253,216,53,0.11)',
   },
   detailLabel: {
+    fontFamily: Fonts.regular,
     fontSize: 11,
-    fontFamily: Fonts.semiBold,
-    color: Colors.gray,
+    color: 'rgba(255,255,255,0.5)',
   },
   detailValue: {
-    fontSize: 18,
+    marginTop: 1,
     fontFamily: Fonts.bold,
-    color: Colors.black,
-    marginTop: 2,
+    fontSize: 17,
+    color: Colors.white,
   },
   verticalDivider: {
     width: 1,
-    height: 40,
-    backgroundColor: '#E2E8F0',
+    height: 42,
+    marginHorizontal: 12,
+    backgroundColor: 'rgba(255,255,255,0.12)',
   },
   infoBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F1F5F9',
+    gap: 9,
     padding: 12,
-    borderRadius: 12,
-    gap: 10,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.07)',
   },
   infoText: {
-    fontSize: 11,
-    fontFamily: Fonts.regular,
-    color: Colors.gray,
     flex: 1,
+    fontFamily: Fonts.regular,
+    fontSize: 11,
+    lineHeight: 15,
+    color: 'rgba(255,255,255,0.58)',
+  },
+  qrCard: {
+    width: '100%',
+    marginTop: 14,
+    padding: 16,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.045)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)',
+  },
+  qrHeading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 11,
+    marginBottom: 14,
+  },
+  qrIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.primary,
+  },
+  qrTitle: {
+    fontFamily: Fonts.bold,
+    fontSize: 16,
+    color: Colors.white,
+  },
+  qrSubtitle: {
+    marginTop: 1,
+    fontFamily: Fonts.regular,
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.55)',
+  },
+  qrSurface: {
+    alignSelf: 'center',
+    padding: 14,
+    borderRadius: 18,
+    backgroundColor: Colors.white,
   },
   primaryBtn: {
-    backgroundColor: Colors.black,
     width: '100%',
-    borderRadius: 16,
-    height: 60,
+    height: 58,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
-    elevation: 2,
+    gap: 10,
+    borderRadius: 18,
+    backgroundColor: Colors.primary,
+    elevation: 6,
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+  },
+  actionContainer: {
+    width: '100%',
+    maxWidth: 560,
+    alignSelf: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 12,
+    backgroundColor: 'rgba(10,10,10,0.98)',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.08)',
   },
   primaryBtnText: {
-    color: Colors.white,
-    fontSize: 15,
     fontFamily: Fonts.bold,
-    letterSpacing: 1,
+    fontSize: 16,
+    color: Colors.dark,
   },
 });

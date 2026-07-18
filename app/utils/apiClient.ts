@@ -8,6 +8,15 @@ export type ApiFetchOptions = Omit<RequestInit, 'headers'> & {
   bearerToken?: string | null;
 };
 
+export function createIdempotencyKey(prefix = 'idem'): string {
+  const now = Date.now();
+  const random =
+    typeof globalThis.crypto?.randomUUID === 'function'
+      ? globalThis.crypto.randomUUID()
+      : `${Math.random().toString(16).slice(2)}-${Math.random().toString(16).slice(2)}`;
+  return `${prefix}-${now}-${random}`;
+}
+
 function normalizeBase(raw: string): string | null {
   if (!raw || !String(raw).trim()) return null;
   return String(raw).replace(/\/$/, '');

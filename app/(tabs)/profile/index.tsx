@@ -1,9 +1,22 @@
 // screens/driver/ProfileScreen.tsx
 import React, { useState, useRef } from 'react';
-import { SafeAreaView, StyleSheet, Text, View, TouchableOpacity, ScrollView, Image, Switch, Alert } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Switch,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { Colors } from '../../../theme'; // Assurez-vous que ces imports sont corrects
+import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Colors } from '../../../theme';
 import { Fonts } from '../../../font';
 import { useDriverStore } from '../../providers/DriverProvider';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -54,6 +67,7 @@ const getStatusStyle = (
 
 export default function DriverProfileScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { online, setOnline, navPref, setNavPref } = useDriverStore();
   const devTapCount = useRef(0);
 
@@ -69,10 +83,15 @@ export default function DriverProfileScreen() {
   const [rating, setRating] = useState(fallbackDriverData.rating);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(fallbackDriverData.avatarUrl);
   const [documents, setDocuments] = useState<DriverDocumentItem[]>(fallbackDriverData.documents);
-  const [, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [photoLoading, setPhotoLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [logoutLoading, setLogoutLoading] = useState(false);
+
+  const validDocumentCount = React.useMemo(
+    () => documents.filter(document => document.status === 'valid').length,
+    [documents],
+  );
 
 
   const initials = React.useMemo(() => {
@@ -395,353 +414,641 @@ export default function DriverProfileScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Mon Profil</Text>
-        <View style={styles.statusRow}>
-          <View style={styles.statusTextBlock}>
-            <Text style={styles.statusLabel}>Statut</Text>
-            <Text style={[styles.statusValue, online ? styles.statusOnline : styles.statusOffline]}>
-              {online ? 'En ligne' : 'Hors ligne'}
-            </Text>
-          </View>
-          <Switch
-            value={online}
-            onValueChange={setOnline}
-            trackColor={{ false: Colors.lightGray, true: Colors.primary + '55' }}
-            thumbColor={online ? Colors.primary : '#f4f3f4'}
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" translucent backgroundColor="transparent" />
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.pageContent}
+      >
+        <LinearGradient
+          colors={[Colors.primary, '#FFC928', Colors.primaryDark]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.hero, { paddingTop: insets.top + 14 }]}
+        >
+          <Image
+            source={require('../../../assets/images/logo_cabin.png')}
+            style={styles.watermark}
+            resizeMode="contain"
           />
-        </View>
-      </View>
-
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Carte d'Identité du Chauffeur */}
-        <TouchableOpacity style={styles.profileCard} onPress={handleChangePhoto} disabled={photoLoading}>
-          <View style={styles.avatarWrapper}>
-            {avatarUrl ? (
-              <Image
-                source={{ uri: avatarUrl }}
-                style={[styles.avatar, { backgroundColor: Colors.lightGray }]}
-                resizeMode="cover"
-              />
-            ) : (
-              <View style={[styles.avatar, styles.avatarFallback]}>
-                <Text style={styles.avatarInitials}>{initials}</Text>
-              </View>
-            )}
-            {photoLoading && (
-              <View style={styles.photoLoaderOverlay}>
-                <Text style={styles.loaderText}>...</Text>
-              </View>
-            )}
-            <View style={styles.editIconBadge}>
-              <MaterialCommunityIcons name="camera" size={16} color="white" />
+          <View style={styles.heroHeading}>
+            <View>
+              <Text style={styles.heroEyebrow}>Espace chauffeur</Text>
+              <Text style={styles.heroTitle}>Mon profil</Text>
+            </View>
+            <View style={[styles.onlineBadge, !online && styles.offlineBadge]}>
+              <View style={[styles.onlineDot, !online && styles.offlineDot]} />
+              <Text style={styles.onlineBadgeText}>{online ? 'En ligne' : 'Hors ligne'}</Text>
             </View>
           </View>
-          <Text style={styles.driverName}>{driverName}</Text>
-          <View style={styles.ratingContainer}>
-            <MaterialCommunityIcons name="star" size={16} color="#FFC107" />
-            <Text style={styles.ratingText}>{rating.toFixed(2)}</Text>
-          </View>
-        </TouchableOpacity>
 
-        {error && (
-          <Text style={{ fontFamily: Fonts.regular, fontSize: 13, color: 'red', marginBottom: 8 }}>
-            {error}
-          </Text>
-        )}
-
-        {/* Section Compte */}
-        <Text style={styles.sectionTitle}>Compte</Text>
-        <View style={styles.menuCard}>
-          <TouchableOpacity style={styles.menuRow} onPress={handleOpenPersonalInfo}>
-            <MaterialCommunityIcons name="account-edit-outline" size={24} color={Colors.primary} style={styles.menuIcon} />
-            <Text style={styles.menuText}>Informations personnelles</Text>
-            <Ionicons name="chevron-forward" size={20} color={Colors.gray} />
-          </TouchableOpacity>
-          <View style={styles.separator} />
-          <TouchableOpacity style={styles.menuRow} onPress={handleOpenVehicle}>
-            <MaterialCommunityIcons name="car-outline" size={24} color={Colors.primary} style={styles.menuIcon} />
-            <Text style={styles.menuText}>Mon véhicule</Text>
-            <Ionicons name="chevron-forward" size={20} color={Colors.gray} />
-          </TouchableOpacity>
-        </View>
-
-        {/* Section Documents */}
-        <Text style={styles.sectionTitle}>Documents</Text>
-        <View style={styles.menuCard}>
-          {documents.map((doc, index) => {
-            const { icon, color } = getStatusStyle(doc.status as any);
-            return (
-              <React.Fragment key={doc.key}>
-                <TouchableOpacity style={styles.menuRow} onPress={() => handleOpenDocument(doc)}>
-                  <MaterialCommunityIcons name={icon} size={24} color={color} style={styles.menuIcon} />
-                  <View style={styles.docDetails}>
-                    <Text style={styles.menuText}>{doc.name}</Text>
-                    <Text style={[styles.docStatus, { color }]}>{doc.expiry}</Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={20} color={Colors.gray} />
-                </TouchableOpacity>
-                {index < documents.length - 1 && <View style={styles.separator} />}
-              </React.Fragment>
-            );
-          })}
-        </View>
-
-        {/* Section Préférences */}
-        <Text style={styles.sectionTitle}>Préférences</Text>
-        <View style={styles.menuCard}>
-          <TouchableOpacity style={styles.menuRow} onPress={handleChooseNavPref}>
-            <MaterialCommunityIcons name="navigation-variant-outline" size={24} color={Colors.primary} style={styles.menuIcon} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.menuText}>Application de navigation</Text>
-              <Text style={styles.menuSubText}>{navPrefLabel}</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={Colors.gray} />
-          </TouchableOpacity>
-        </View>
-
-        {/* Actions */}
-        <View style={{ marginTop: 24 }}>
           <TouchableOpacity
-            style={[styles.menuRow, styles.actionButton]}
-            onPress={() => router.push('/become-driver')}
+            style={styles.identityRow}
+            onPress={handleChangePhoto}
+            disabled={photoLoading}
+            activeOpacity={0.82}
+            accessibilityLabel="Changer la photo de profil"
           >
-            <MaterialCommunityIcons name="steering" size={24} color={Colors.primary} style={styles.menuIcon} />
-            <Text style={styles.menuText}>Compléter mon profil chauffeur</Text>
-            <Ionicons name="chevron-forward" size={20} color={Colors.gray} />
+            <View style={styles.avatarWrapper}>
+              {avatarUrl ? (
+                <Image source={{ uri: avatarUrl }} style={styles.avatar} resizeMode="cover" />
+              ) : (
+                <View style={[styles.avatar, styles.avatarFallback]}>
+                  <Text style={styles.avatarInitials}>{initials}</Text>
+                </View>
+              )}
+              {photoLoading && (
+                <View style={styles.photoLoaderOverlay}>
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                </View>
+              )}
+              <View style={styles.editIconBadge}>
+                <MaterialCommunityIcons name="camera" size={15} color={Colors.dark} />
+              </View>
+            </View>
+            <View style={styles.identityCopy}>
+              <Text style={styles.driverName} numberOfLines={1}>{driverName}</Text>
+              <View style={styles.ratingContainer}>
+                <MaterialCommunityIcons name="star" size={16} color={Colors.dark} />
+                <Text style={styles.ratingText}>{rating.toFixed(2)}</Text>
+                <Text style={styles.photoHint}>• Modifier la photo</Text>
+              </View>
+            </View>
           </TouchableOpacity>
+        </LinearGradient>
 
-          <TouchableOpacity style={[styles.menuRow, styles.actionButton]} onPress={handleOpenHelp}>
-            <MaterialCommunityIcons name="help-circle-outline" size={24} color={Colors.primary} style={styles.menuIcon} />
-            <Text style={styles.menuText}>Aide et Support</Text>
-            <Ionicons name="chevron-forward" size={20} color={Colors.gray} />
-          </TouchableOpacity>
+        <View style={styles.content}>
+          <View style={styles.availabilityCard}>
+            <View style={styles.availabilityIcon}>
+              <MaterialCommunityIcons
+                name={online ? 'motorbike' : 'power-standby'}
+                size={23}
+                color={online ? '#24914C' : '#7B766D'}
+              />
+            </View>
+            <View style={styles.availabilityCopy}>
+              <Text style={styles.availabilityTitle}>Disponibilité</Text>
+              <Text style={styles.availabilitySubtitle}>
+                {online ? 'Vous pouvez recevoir des demandes' : 'Activez-vous pour recevoir des courses'}
+              </Text>
+            </View>
+            <Switch
+              value={online}
+              onValueChange={setOnline}
+              trackColor={{ false: '#D9D6CD', true: '#A6E0BA' }}
+              thumbColor={online ? '#24914C' : '#F4F3EF'}
+            />
+          </View>
+
+          {loading && (
+            <View style={styles.feedbackCard}>
+              <ActivityIndicator size="small" color={Colors.primaryDark} />
+              <Text style={styles.feedbackText}>Mise à jour de votre profil...</Text>
+            </View>
+          )}
+          {error && !loading && (
+            <View style={[styles.feedbackCard, styles.errorCard]}>
+              <Ionicons name="alert-circle-outline" size={20} color={Colors.error} />
+              <Text style={[styles.feedbackText, styles.errorText]}>{error}</Text>
+            </View>
+          )}
+
+          <View style={styles.summaryRow}>
+            <View style={styles.summaryCard}>
+              <MaterialCommunityIcons name="file-check-outline" size={23} color="#24914C" />
+              <Text style={styles.summaryValue}>{validDocumentCount}/{documents.length}</Text>
+              <Text style={styles.summaryLabel}>Documents validés</Text>
+            </View>
+            <View style={styles.summaryCard}>
+              <MaterialCommunityIcons name="star-outline" size={23} color="#A87900" />
+              <Text style={styles.summaryValue}>{rating.toFixed(2)}</Text>
+              <Text style={styles.summaryLabel}>Note chauffeur</Text>
+            </View>
+          </View>
+
+          <Text style={styles.sectionTitle}>Compte</Text>
+          <View style={styles.menuCard}>
+            <TouchableOpacity style={styles.menuRow} onPress={handleOpenPersonalInfo}>
+              <View style={styles.menuIconBox}>
+                <MaterialCommunityIcons name="account-edit-outline" size={22} color={Colors.dark} />
+              </View>
+              <View style={styles.menuCopy}>
+                <Text style={styles.menuText}>Informations personnelles</Text>
+                <Text style={styles.menuSubText}>Nom, téléphone et informations du compte</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={19} color="#9C978C" />
+            </TouchableOpacity>
+            <View style={styles.separator} />
+            <TouchableOpacity style={styles.menuRow} onPress={handleOpenVehicle}>
+              <View style={styles.menuIconBox}>
+                <MaterialCommunityIcons name="motorbike" size={22} color={Colors.dark} />
+              </View>
+              <View style={styles.menuCopy}>
+                <Text style={styles.menuText}>Mon véhicule</Text>
+                <Text style={styles.menuSubText}>Caractéristiques et immatriculation</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={19} color="#9C978C" />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.sectionHeadingRow}>
+            <Text style={styles.sectionTitle}>Documents chauffeur</Text>
+            <View style={styles.sectionBadge}>
+              <Text style={styles.sectionBadgeText}>{validDocumentCount} validé{validDocumentCount > 1 ? 's' : ''}</Text>
+            </View>
+          </View>
+          <View style={styles.menuCard}>
+            {documents.map((doc, index) => {
+              const { icon, color } = getStatusStyle(doc.status);
+              return (
+                <React.Fragment key={doc.key}>
+                  <TouchableOpacity style={styles.menuRow} onPress={() => handleOpenDocument(doc)}>
+                    <View style={[styles.menuIconBox, { backgroundColor: `${color}16` }]}>
+                      <MaterialCommunityIcons name={icon} size={22} color={color} />
+                    </View>
+                    <View style={styles.menuCopy}>
+                      <Text style={styles.menuText}>{doc.name}</Text>
+                      <Text style={[styles.docStatus, { color }]}>{doc.expiry}</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={19} color="#9C978C" />
+                  </TouchableOpacity>
+                  {index < documents.length - 1 && <View style={styles.separator} />}
+                </React.Fragment>
+              );
+            })}
+          </View>
+
+          <Text style={styles.sectionTitle}>Préférences et assistance</Text>
+          <View style={styles.menuCard}>
+            <TouchableOpacity style={styles.menuRow} onPress={handleChooseNavPref}>
+              <View style={styles.menuIconBox}>
+                <MaterialCommunityIcons name="navigation-variant-outline" size={22} color={Colors.dark} />
+              </View>
+              <View style={styles.menuCopy}>
+                <Text style={styles.menuText}>Application de navigation</Text>
+                <Text style={styles.menuSubText}>{navPrefLabel}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={19} color="#9C978C" />
+            </TouchableOpacity>
+            <View style={styles.separator} />
+            <TouchableOpacity style={styles.menuRow} onPress={handleOpenHelp}>
+              <View style={styles.menuIconBox}>
+                <MaterialCommunityIcons name="help-circle-outline" size={22} color={Colors.dark} />
+              </View>
+              <View style={styles.menuCopy}>
+                <Text style={styles.menuText}>Aide et support</Text>
+                <Text style={styles.menuSubText}>Besoin d'aide avec l'application</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={19} color="#9C978C" />
+            </TouchableOpacity>
+          </View>
+
+          {validDocumentCount < documents.length && (
+            <TouchableOpacity style={styles.completionCard} onPress={() => router.push('/become-driver')}>
+              <View style={styles.completionIcon}>
+                <MaterialCommunityIcons name="clipboard-check-outline" size={24} color={Colors.dark} />
+              </View>
+              <View style={styles.menuCopy}>
+                <Text style={styles.completionTitle}>Compléter mon dossier</Text>
+                <Text style={styles.completionSubtitle}>Ajoutez les éléments manquants à votre profil chauffeur</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={19} color={Colors.dark} />
+            </TouchableOpacity>
+          )}
+
           <TouchableOpacity
-            style={[styles.menuRow, styles.actionButton, { marginTop: 12, opacity: logoutLoading ? 0.6 : 1 }]}
+            style={[styles.logoutButton, logoutLoading && styles.disabledButton]}
             onPress={handleLogout}
             disabled={logoutLoading}
           >
-            <MaterialCommunityIcons name="logout" size={24} color="#F44336" style={styles.menuIcon} />
-            <Text style={[styles.menuText, { color: '#F44336' }]}>
-              {logoutLoading ? 'Déconnexion…' : 'Se déconnecter'}
-            </Text>
+            {logoutLoading
+              ? <ActivityIndicator size="small" color={Colors.error} />
+              : <MaterialCommunityIcons name="logout" size={22} color={Colors.error} />}
+            <Text style={styles.logoutText}>{logoutLoading ? 'Déconnexion...' : 'Se déconnecter'}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => {
+              Alert.alert(
+                'Supprimer mon compte',
+                'Cette action est irréversible. Toutes vos données seront supprimées. Êtes-vous sûr ?',
+                [
+                  { text: 'Annuler', style: 'cancel' },
+                  {
+                    text: 'Supprimer',
+                    style: 'destructive',
+                    onPress: async () => {
+                      try {
+                        const token = await getAuthToken();
+                        if (!token || !getApiBaseUrl()) return;
+                        const res = await apiFetch('/auth/account', {
+                          method: 'DELETE',
+                          headers: { Accept: 'application/json' },
+                        });
+                        if (res?.ok) {
+                          await removeAuthToken();
+                          Alert.alert('Compte supprimé', 'Votre compte a été supprimé.');
+                          router.replace('/driver-phone-login');
+                        } else {
+                          Alert.alert('Erreur', 'Impossible de supprimer le compte.');
+                        }
+                      } catch {
+                        Alert.alert('Erreur', 'Une erreur est survenue.');
+                      }
+                    },
+                  },
+                ],
+              );
+            }}
+            style={styles.deleteButton}
+          >
+            <MaterialCommunityIcons name="trash-can-outline" size={17} color="#98938A" />
+            <Text style={styles.deleteText}>Supprimer mon compte</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={handleDevTrigger} activeOpacity={1} style={styles.versionButton}>
+            <Text style={styles.versionText}>v1.2.0 • Kêkênon Zem</Text>
           </TouchableOpacity>
         </View>
-
-        <TouchableOpacity
-          onPress={() => {
-            Alert.alert(
-              'Supprimer mon compte',
-              'Cette action est irréversible. Toutes vos données seront supprimées. Êtes-vous sûr ?',
-              [
-                { text: 'Annuler', style: 'cancel' },
-                {
-                  text: 'Supprimer',
-                  style: 'destructive',
-                  onPress: async () => {
-                    try {
-                      const token = await getAuthToken();
-                      if (!token || !getApiBaseUrl()) return;
-                      const res = await apiFetch('/auth/account', {
-                        method: 'DELETE',
-                        headers: { Accept: 'application/json' },
-                      });
-                      if (res?.ok) {
-                        await removeAuthToken();
-                        Alert.alert('Compte supprimé', 'Votre compte a été supprimé.');
-                        router.replace('/driver-phone-login');
-                      } else {
-                        Alert.alert('Erreur', 'Impossible de supprimer le compte.');
-                      }
-                    } catch {
-                      Alert.alert('Erreur', 'Une erreur est survenue.');
-                    }
-                  }
-                }
-              ]
-            );
-          }}
-          style={{ alignItems: 'center', marginTop: 20, flexDirection: 'row', justifyContent: 'center', gap: 6 }}
-        >
-          <MaterialCommunityIcons name="trash-can-outline" size={18} color="#94a3b8" />
-          <Text style={{ fontFamily: Fonts.regular, fontSize: 14, color: '#94a3b8' }}>Supprimer mon compte</Text>
-        </TouchableOpacity>
-
-        {/* Version + DevPanel trigger */}
-        <TouchableOpacity onPress={handleDevTrigger} activeOpacity={1} style={{ marginTop: 20, marginBottom: 20, alignItems: 'center' }}>
-          <Text style={{ fontFamily: Fonts.regular, fontSize: 12, color: Colors.gray }}>v1.2.0 • Kêkênon Zem</Text>
-        </TouchableOpacity>
-
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: '#F6F3E9',
   },
-  header: {
-    padding: 20,
-    paddingBottom: 10,
-    backgroundColor: 'white',
+  pageContent: {
+    paddingBottom: 116,
   },
-  headerTitle: {
-    fontFamily: Fonts.bold,
-    fontSize: 24,
-    color: Colors.black,
+  hero: {
+    position: 'relative',
+    overflow: 'hidden',
+    minHeight: 285,
+    paddingHorizontal: 21,
+    paddingBottom: 42,
   },
-  statusRow: {
-    marginTop: 12,
+  watermark: {
+    position: 'absolute',
+    width: 270,
+    height: 270,
+    right: -72,
+    bottom: -88,
+    opacity: 0.08,
+    tintColor: Colors.dark,
+    transform: [{ rotate: '-10deg' }],
+  },
+  heroHeading: {
+    zIndex: 2,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  statusTextBlock: {
-    flexDirection: 'column',
-  },
-  statusLabel: {
-    fontFamily: Fonts.regular,
+  heroEyebrow: {
+    fontFamily: Fonts.semiBold,
     fontSize: 13,
-    color: Colors.gray,
+    color: 'rgba(26,26,26,0.62)',
   },
-  statusValue: {
+  heroTitle: {
+    marginTop: 1,
     fontFamily: Fonts.bold,
-    fontSize: 15,
+    fontSize: 30,
+    lineHeight: 35,
+    color: Colors.dark,
   },
-  statusOnline: {
-    color: '#16a34a',
-  },
-  statusOffline: {
-    color: '#b91c1c',
-  },
-  scrollContent: {
-    padding: 20,
-    paddingBottom: 40,
-    maxWidth: 640,
-    width: '100%',
-    alignSelf: 'center',
-  },
-  profileCard: {
+  onlineBadge: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 32,
+    gap: 7,
+    paddingHorizontal: 11,
+    paddingVertical: 8,
+    borderRadius: 13,
+    backgroundColor: 'rgba(255,255,255,0.42)',
+  },
+  offlineBadge: {
+    backgroundColor: 'rgba(255,255,255,0.3)',
+  },
+  onlineDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#24914C',
+  },
+  offlineDot: {
+    backgroundColor: '#8B8370',
+  },
+  onlineBadgeText: {
+    fontFamily: Fonts.bold,
+    fontSize: 13,
+    color: Colors.dark,
+  },
+  identityRow: {
+    zIndex: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 31,
+  },
+  avatarWrapper: {
+    position: 'relative',
   },
   avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 92,
+    height: 92,
+    borderRadius: 30,
     borderWidth: 3,
+    borderColor: 'rgba(255,255,255,0.72)',
+    backgroundColor: '#E8DDA8',
+  },
+  avatarFallback: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.dark,
+  },
+  avatarInitials: {
+    fontFamily: Fonts.bold,
+    fontSize: 31,
+    color: Colors.white,
+  },
+  photoLoaderOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 30,
+    backgroundColor: 'rgba(0,0,0,0.42)',
+  },
+  editIconBadge: {
+    position: 'absolute',
+    right: -4,
+    bottom: -4,
+    width: 30,
+    height: 30,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
     borderColor: Colors.primary,
-    marginBottom: 12,
+    backgroundColor: Colors.white,
+  },
+  identityCopy: {
+    flex: 1,
+    marginLeft: 16,
   },
   driverName: {
     fontFamily: Fonts.bold,
-    fontSize: 22,
-    color: Colors.black,
+    fontSize: 24,
+    color: Colors.dark,
   },
   ratingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 6,
-    backgroundColor: 'rgba(255, 193, 7, 0.1)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    marginTop: 7,
   },
   ratingText: {
+    marginLeft: 5,
     fontFamily: Fonts.bold,
     fontSize: 14,
-    color: '#FFA000',
-    marginLeft: 6,
+    color: Colors.dark,
+  },
+  photoHint: {
+    marginLeft: 5,
+    fontFamily: Fonts.medium,
+    fontSize: 13,
+    color: 'rgba(26,26,26,0.62)',
+  },
+  content: {
+    maxWidth: 640,
+    width: '100%',
+    alignSelf: 'center',
+    paddingHorizontal: 17,
+  },
+  availabilityCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: -24,
+    marginBottom: 14,
+    padding: 14,
+    borderRadius: 19,
+    borderWidth: 1,
+    borderColor: '#E9E4D7',
+    backgroundColor: Colors.white,
+    shadowColor: '#493B13',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 11,
+    elevation: 4,
+  },
+  availabilityIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F3F1EA',
+  },
+  availabilityCopy: {
+    flex: 1,
+    marginHorizontal: 12,
+  },
+  availabilityTitle: {
+    fontFamily: Fonts.bold,
+    fontSize: 16,
+    color: Colors.dark,
+  },
+  availabilitySubtitle: {
+    marginTop: 1,
+    fontFamily: Fonts.regular,
+    fontSize: 12,
+    color: '#7E796F',
+  },
+  feedbackCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+    marginBottom: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 15,
+    backgroundColor: '#FFF5C4',
+  },
+  feedbackText: {
+    flex: 1,
+    fontFamily: Fonts.medium,
+    fontSize: 13,
+    color: '#6C5B19',
+  },
+  errorCard: {
+    backgroundColor: '#FDECEA',
+  },
+  errorText: {
+    color: '#963E35',
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    gap: 11,
+    marginBottom: 24,
+  },
+  summaryCard: {
+    flex: 1,
+    minHeight: 116,
+    padding: 15,
+    borderRadius: 19,
+    borderWidth: 1,
+    borderColor: '#E9E4D7',
+    backgroundColor: Colors.white,
+  },
+  summaryValue: {
+    marginTop: 8,
+    fontFamily: Fonts.bold,
+    fontSize: 21,
+    color: Colors.dark,
+  },
+  summaryLabel: {
+    marginTop: 1,
+    fontFamily: Fonts.medium,
+    fontSize: 12,
+    color: '#7D786F',
   },
   sectionTitle: {
     fontFamily: Fonts.bold,
-    fontSize: 16,
-    color: Colors.gray,
-    marginBottom: 12,
-    textTransform: 'uppercase',
+    fontSize: 18,
+    color: Colors.dark,
+    marginBottom: 9,
+  },
+  sectionHeadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  sectionBadge: {
+    marginBottom: 9,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 9,
+    backgroundColor: '#E7F6EC',
+  },
+  sectionBadgeText: {
+    fontFamily: Fonts.semiBold,
+    fontSize: 11,
+    color: '#237E46',
   },
   menuCard: {
-    backgroundColor: 'white',
-    borderRadius: 16,
-    marginBottom: 24,
+    overflow: 'hidden',
+    marginBottom: 22,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E9E4D7',
+    backgroundColor: Colors.white,
   },
   menuRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    minHeight: 72,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
   },
-  menuIcon: {
-    marginRight: 16,
-  },
-  menuText: {
-    flex: 1,
-    fontFamily: Fonts.semiBold,
-    fontSize: 16,
-    color: Colors.black,
-  },
-  menuSubText: {
-    fontFamily: Fonts.regular,
-    fontSize: 13,
-    color: Colors.gray,
-  },
-  separator: {
-    height: 1,
-    backgroundColor: Colors.lightGray,
-    marginLeft: 56, // Aligné avec le début du texte
-  },
-  docDetails: {
-    flex: 1,
-  },
-  docStatus: {
-    fontFamily: Fonts.regular,
-    fontSize: 13,
-    marginTop: 2,
-  },
-  actionButton: {
-    backgroundColor: 'white',
-    borderRadius: 16,
-  },
-  avatarFallback: {
-    backgroundColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarInitials: {
-    fontFamily: Fonts.bold,
-    fontSize: 32,
-    color: 'white',
-  },
-  avatarWrapper: {
-    position: 'relative',
-    marginBottom: 12,
-  },
-  editIconBadge: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    backgroundColor: Colors.primary,
-    width: 28,
-    height: 28,
+  menuIconBox: {
+    width: 42,
+    height: 42,
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: 'white',
+    marginRight: 12,
+    backgroundColor: '#FFF2B5',
   },
-  photoLoaderOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    borderRadius: 50,
+  menuCopy: {
+    flex: 1,
+  },
+  menuText: {
+    fontFamily: Fonts.semiBold,
+    fontSize: 15,
+    color: Colors.dark,
+  },
+  menuSubText: {
+    marginTop: 2,
+    fontFamily: Fonts.regular,
+    fontSize: 12,
+    lineHeight: 16,
+    color: '#888278',
+  },
+  separator: {
+    height: 1,
+    marginLeft: 68,
+    backgroundColor: '#EFEBE1',
+  },
+  docStatus: {
+    marginTop: 2,
+    fontFamily: Fonts.regular,
+    fontSize: 12,
+  },
+  completionCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 18,
+    padding: 15,
+    borderRadius: 20,
+    backgroundColor: Colors.primary,
+  },
+  completionIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
+    marginRight: 12,
+    backgroundColor: 'rgba(255,255,255,0.42)',
   },
-  loaderText: {
-    color: 'white',
+  completionTitle: {
     fontFamily: Fonts.bold,
+    fontSize: 16,
+    color: Colors.dark,
+  },
+  completionSubtitle: {
+    marginTop: 2,
+    fontFamily: Fonts.medium,
+    fontSize: 12,
+    lineHeight: 16,
+    color: 'rgba(26,26,26,0.66)',
+  },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 9,
+    minHeight: 52,
+    borderRadius: 17,
+    borderWidth: 1,
+    borderColor: '#F3CBC7',
+    backgroundColor: '#FFF7F6',
+  },
+  disabledButton: {
+    opacity: 0.6,
+  },
+  logoutText: {
+    fontFamily: Fonts.bold,
+    fontSize: 15,
+    color: Colors.error,
+  },
+  deleteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 19,
+  },
+  deleteText: {
+    fontFamily: Fonts.regular,
+    fontSize: 13,
+    color: '#98938A',
+  },
+  versionButton: {
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  versionText: {
+    fontFamily: Fonts.regular,
+    fontSize: 12,
+    color: '#98938A',
   },
 });

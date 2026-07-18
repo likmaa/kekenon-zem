@@ -1,27 +1,38 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
+  Image,
   StyleSheet,
   View,
   Text,
   FlatList,
-  SafeAreaView,
   StatusBar,
   TouchableOpacity,
   RefreshControl,
+  ScrollView,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDriverStore } from '../providers/DriverProvider';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Fonts } from '../../font';
-import { Colors, Shadows } from '../../theme';
+import { Colors } from '../../theme';
 import { fmtDayDateTime } from '../utils/dateFormat';
 
 export default function DriverActivityTab() {
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { history, loadHistoryFromBackend } = useDriverStore();
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [filter, setFilter] = useState<'all' | 'completed' | 'cancelled' | 'delivery'>('all');
 
   useEffect(() => {
-    loadHistoryFromBackend();
+    void (async () => {
+      try { await loadHistoryFromBackend(); } finally { setLoading(false); }
+    })();
   }, [loadHistoryFromBackend]);
 
   const onRefresh = async () => {
@@ -29,8 +40,15 @@ export default function DriverActivityTab() {
     try { await loadHistoryFromBackend(); } finally { setRefreshing(false); }
   };
 
+  const filteredHistory = useMemo(() => history.filter((item: any) => {
+    if (filter === 'all') return true;
+    if (filter === 'delivery') return item.service_type === 'livraison';
+    if (filter === 'completed') return item.status === 'completed' || item.status === 'payé';
+    return item.status === 'cancelled' || item.status === 'annulée';
+  }), [filter, history]);
+
   const renderItem = ({ item }: { item: any }) => {
-    const rawDate = item.completedAt || item.createdAt;
+    const rawDate = item.completedAt || item.cancelledAt || item.createdAt;
     const d = rawDate ? new Date(rawDate) : null;
     const date = d && !Number.isNaN(d.getTime()) ? fmtDayDateTime(d) : '—';
     const itemId = item.id ? String(item.id) : '';
@@ -54,7 +72,7 @@ export default function DriverActivityTab() {
               <MaterialCommunityIcons
                 name={isLivraison ? "package-variant" : "car"}
                 size={18}
-                color={Colors.primary}
+                color={isLivraison ? '#B38F00' : '#24914C'}
               />
             </View>
             <Text style={styles.serviceText}>
@@ -86,9 +104,9 @@ export default function DriverActivityTab() {
         {/* Trajet visualisé */}
         <View style={styles.routeContainer}>
           <View style={styles.dotLine}>
-            <View style={[styles.dot, { backgroundColor: Colors.primary }]} />
+            <View style={[styles.dot, { backgroundColor: '#2BA458' }]} />
             <View style={styles.line} />
-            <View style={[styles.dot, { backgroundColor: Colors.secondary }]} />
+            <View style={[styles.dot, { backgroundColor: '#E53935' }]} />
           </View>
           <View style={styles.addressList}>
             <Text style={styles.addressText} numberOfLines={isExpanded ? undefined : 1}>{item.pickup}</Text>
@@ -147,76 +165,162 @@ export default function DriverActivityTab() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#0f172a" />
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+      <LinearGradient
+        colors={['#37BD6B', '#279C52']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.headerContainer, { paddingTop: insets.top + 14 }]}
+      >
+        <Image source={require('../../assets/images/logo_cabin.png')} style={styles.watermark} resizeMode="contain" />
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()} hitSlop={10}>
+          <Ionicons name="arrow-back" size={22} color="#FFFFFF" />
+        </TouchableOpacity>
+        <View style={styles.headerCopy}>
+          <Text style={styles.headerEyebrow}>Vos prestations</Text>
+          <Text style={styles.title}>Activité</Text>
+          <Text style={styles.subtitle}>{history.length} course{history.length > 1 ? 's' : ''}</Text>
+        </View>
+      </LinearGradient>
 
-      <View style={styles.headerContainer}>
-        <Text style={styles.title}>Historique des courses</Text>
-        <Text style={styles.subtitle}>{history.length} course{history.length > 1 ? 's' : ''}</Text>
+      <View style={styles.filterContainer}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterContent}>
+          {([
+            { key: 'all' as const, label: 'Toutes' },
+            { key: 'completed' as const, label: 'Terminées' },
+            { key: 'cancelled' as const, label: 'Annulées' },
+            { key: 'delivery' as const, label: 'Livraisons' },
+          ]).map((item) => (
+            <TouchableOpacity
+              key={item.key}
+              style={[styles.chip, filter === item.key && styles.chipActive]}
+              onPress={() => setFilter(item.key)}
+            >
+              <Text style={[styles.chipText, filter === item.key && styles.chipTextActive]}>{item.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </View>
 
-      {history.length === 0 ? (
+      {loading ? (
+        <View style={styles.loader}><ActivityIndicator size="large" color="#2BA458" /></View>
+      ) : filteredHistory.length === 0 ? (
         <View style={styles.emptyState}>
-          <Ionicons name="car-sport-outline" size={64} color="#475569" />
-          <Text style={styles.emptyTitle}>Aucune course terminée</Text>
+          <View style={styles.emptyIcon}><Ionicons name="car-sport-outline" size={28} color="#24914C" /></View>
+          <Text style={styles.emptyTitle}>Aucune activité</Text>
           <Text style={styles.emptySubtitle}>
-            Vos courses apparaîtront ici une fois terminées.
+            Les courses correspondant à ce filtre apparaîtront ici.
           </Text>
         </View>
       ) : (
         <FlatList
-          data={history}
+          data={filteredHistory}
           keyExtractor={(item, index) => item.id ? `${item.id}-${index}` : index.toString()}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           renderItem={renderItem}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={() => void onRefresh()} colors={[Colors.primary]} />
+            <RefreshControl refreshing={refreshing} onRefresh={() => void onRefresh()} colors={['#2BA458']} />
           }
         />
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: '#EFF3F0',
   },
+  loader: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   headerContainer: {
+    position: 'relative',
+    overflow: 'hidden',
+    flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: 190,
     paddingHorizontal: 20,
-    paddingTop: 50,
-    paddingBottom: 20,
-    backgroundColor: Colors.white,
-    ...Shadows.sm,
+    paddingBottom: 30,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+  },
+  watermark: {
+    position: 'absolute',
+    right: -30,
+    bottom: -62,
+    width: 205,
+    height: 205,
+    opacity: 0.11,
+    tintColor: '#FFFFFF',
+  },
+  backButton: {
+    zIndex: 2,
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+  },
+  headerCopy: {
+    position: 'absolute',
+    left: 74,
+    right: 74,
+    bottom: 29,
+    alignItems: 'center',
+  },
+  headerEyebrow: {
+    fontFamily: Fonts.medium,
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.68)',
   },
   title: {
-    fontSize: 24,
+    marginTop: 1,
+    fontSize: 29,
     fontFamily: Fonts.bold,
-    color: Colors.black,
+    color: '#FFFFFF',
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: Fonts.regular,
-    color: Colors.gray,
-    marginTop: 4,
+    color: 'rgba(255,255,255,0.72)',
+    marginTop: 2,
   },
+  filterContainer: {
+    zIndex: 3,
+    width: '92%',
+    maxWidth: 640,
+    alignSelf: 'center',
+    marginTop: -18,
+    paddingVertical: 11,
+    borderRadius: 18,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E9E4',
+  },
+  filterContent: { paddingHorizontal: 11, gap: 8 },
+  chip: { paddingHorizontal: 15, paddingVertical: 8, borderRadius: 12, backgroundColor: '#F0F4F1' },
+  chipActive: { backgroundColor: '#DFF2E5' },
+  chipText: { fontFamily: Fonts.semiBold, fontSize: 13, color: '#6B776F' },
+  chipTextActive: { color: '#208344' },
 
   listContent: {
-    padding: 20,
-    paddingBottom: 40,
+    paddingTop: 18,
+    paddingBottom: 110,
     maxWidth: 640,
-    width: '100%',
+    width: '92%',
     alignSelf: 'center',
   },
 
   card: {
     backgroundColor: Colors.white,
     borderRadius: 20,
-    padding: 16,
-    marginBottom: 16,
-    ...Shadows.sm,
+    padding: 15,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#E3E9E5',
   },
   cardHeader: {
     flexDirection: 'row',
@@ -230,23 +334,23 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   serviceIconCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#EEF2FF',
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: '#EAF7EE',
     justifyContent: 'center',
     alignItems: 'center',
   },
   serviceText: {
     fontSize: 14,
     fontFamily: Fonts.semiBold,
-    color: Colors.black,
+    color: '#1E2B23',
   },
   dateText: {
-    fontSize: 13,
+    fontSize: 12,
     fontFamily: Fonts.regular,
     color: Colors.gray,
-    marginBottom: 16,
+    marginBottom: 14,
   },
 
   statusBadge: {
@@ -254,7 +358,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 8,
   },
-  successBadge: { backgroundColor: '#ECFDF5' },
+  successBadge: { backgroundColor: '#E5F5EA' },
   cancelledBadge: { backgroundColor: '#FEF2F2' },
   pendingBadge: { backgroundColor: '#FFFBEB' },
 
@@ -291,9 +395,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   addressText: {
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: Fonts.regular,
-    color: Colors.black,
+    color: '#465249',
   },
 
   cardFooter: {
@@ -311,7 +415,7 @@ const styles = StyleSheet.create({
   fareAmount: {
     fontSize: 20,
     fontFamily: Fonts.bold,
-    color: Colors.primary,
+    color: '#24914C',
   },
   fareLabel: {
     fontSize: 10,
@@ -345,24 +449,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 40,
   },
+  emptyIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#E1F3E7',
+  },
   emptyTitle: {
     fontSize: 20,
     fontFamily: Fonts.bold,
-    color: Colors.black,
-    marginTop: 20,
+    color: '#26342B',
+    marginTop: 14,
   },
   emptySubtitle: {
-    fontSize: 15,
+    fontSize: 13,
     fontFamily: Fonts.regular,
     color: Colors.gray,
     textAlign: 'center',
-    marginTop: 10,
-    lineHeight: 22,
+    marginTop: 6,
+    lineHeight: 18,
   },
   expandedDetails: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 8,
-    padding: 10,
+    backgroundColor: '#F0F5F1',
+    borderRadius: 12,
+    padding: 12,
     marginBottom: 12,
     gap: 4,
   },

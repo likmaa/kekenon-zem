@@ -8,10 +8,7 @@ import {
   Alert,
   Linking,
   ActivityIndicator,
-  Image,
-  Animated,
-  PanResponder,
-  Dimensions,
+  ScrollView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -19,13 +16,22 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useDriverStore } from './providers/DriverProvider';
 import * as Location from 'expo-location';
 import { fetchRouteOSRM } from './utils/osrm';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Mapbox } from './utils/mapboxInit';
 import { useMapVisible } from './hooks/useMapVisible';
 import { Colors } from '../theme';
 import { Fonts } from '../font';
 import { getImageUrl, withImageVersion } from './utils/images';
 import { openExternalUrl, openNavigation } from './utils/openExternalUrl';
+import {
+  checkNetworkConnection,
+  saveRideState,
+  showNetworkErrorAlert,
+  subscribeToNetworkChanges,
+} from './utils/networkHandler';
+import { DriverRideTopOverlay } from './components/ride/DriverRideTopOverlay';
+import { DriverRideDetails } from './components/ride/DriverRideDetails';
+import { SlideToConfirm } from './components/ride/SlideToConfirm';
 
 // ─── ErrorBoundary ──────────────────────────────────────────────────────────
 // Mapbox et certains composants natifs avalent les exceptions JSX et affichent
@@ -76,51 +82,6 @@ class PickupErrorBoundary extends React.Component<
   }
 }
 
-
-function WaitTimer({ arrivedAt }: { arrivedAt: string }) {
-  const [seconds, setSeconds] = React.useState(0);
-
-  React.useEffect(() => {
-    const start = new Date(arrivedAt).getTime();
-    const interval = setInterval(() => {
-      setSeconds(Math.floor((Date.now() - start) / 1000));
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [arrivedAt]);
-
-  const grace = 5 * 60; // 5 min
-  const isOverGrace = seconds > grace;
-  const displaySeconds = isOverGrace ? seconds - grace : grace - seconds;
-
-  const formatTime = (s: number) => {
-    const m = Math.floor(s / 60);
-    const rs = s % 60;
-    return `${m}:${rs.toString().padStart(2, '0')}`;
-  };
-
-  return (
-    <View style={[styles.timerCard, isOverGrace && styles.timerCardAlert]}>
-      <Ionicons
-        name={isOverGrace ? "warning" : "hourglass-outline"}
-        size={24}
-        color={isOverGrace ? Colors.error : Colors.primary}
-      />
-      <View style={{ flex: 1 }}>
-        <Text style={styles.timerLabel}>
-          {isOverGrace ? "Attente facturée" : "Délai de grâce"}
-        </Text>
-        <Text style={[styles.timerValue, isOverGrace && styles.timerValueAlert]}>
-          {formatTime(displaySeconds)}
-        </Text>
-      </View>
-      {isOverGrace && (
-        <View style={styles.feeBadge}>
-          <Text style={styles.feeText}>+{Math.floor(displaySeconds / 60) * 10} F</Text>
-        </View>
-      )}
-    </View>
-  );
-}
 
 // ─── Système de logs de debug en temps réel ─────────────────────────────────
 // Visible sur l'appareil physique sans ordinateur : taper 5 fois sur le badge ETA.
@@ -175,10 +136,18 @@ function DebugPanel({ logs, onClose }: { logs: LogEntry[]; onClose: () => void }
 }
 
 function PickupScreenInner() {
-  const SCREEN_HEIGHT = Dimensions.get('window').height;
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { currentRide, setPickupDone, signalArrival, navPref, syncCurrentRide } = useDriverStore();
+  const {
+    currentRide,
+    setPickupDone,
+    signalArrival,
+    completeRide,
+    startStop,
+    endStop,
+    navPref,
+    syncCurrentRide,
+  } = useDriverStore();
   const { logs, log } = usePickupDebug();
   const [debugVisible, setDebugVisible] = React.useState(false);
   const etaTapCount = React.useRef(0);
@@ -213,11 +182,19 @@ function PickupScreenInner() {
   React.useEffect(() => () => { isMounted.current = false; }, []);
 
   const [eta, setEta] = React.useState(6);
+  const [distance, setDistance] = React.useState<number | null>(null);
   const [myLoc, setMyLoc] = React.useState<{ latitude: number; longitude: number } | null>(null);
   const [routeCoords, setRouteCoords] = React.useState<{ latitude: number; longitude: number }[]>([]);
   const [loadingAction, setLoadingAction] = React.useState(false);
+  const [isOnline, setIsOnline] = React.useState(true);
+  const [liveStopSeconds, setLiveStopSeconds] = React.useState(0);
   const [mapReady, setMapReady] = React.useState(false);
+  const [mapFocusMode, setMapFocusMode] = React.useState<'overview' | 'origin' | 'destination'>('overview');
   const mapVisible = useMapVisible();
+  const isOngoing = currentRide?.status === 'ongoing';
+  const routeTargetLat = isOngoing ? currentRide?.dropoffLat : currentRide?.pickupLat;
+  const routeTargetLon = isOngoing ? currentRide?.dropoffLon : currentRide?.pickupLon;
+  const routeTargetKind = isOngoing ? 'dropoff' : 'pickup';
 
   // Filet de sécurité Mapbox : Forcer mapReady à true après 3 secondes quoi qu'il arrive (problème réseau ou native callback manqué)
   React.useEffect(() => {
@@ -231,62 +208,21 @@ function PickupScreenInner() {
   }, [mapReady, log]);
   const [cameraBounds, setCameraBounds] = React.useState<{ ne: [number, number], sw: [number, number] } | null>(null);
 
-  // RENDER-LOOP-01 : Ce ref empêche le useEffect GPS/OSRM de se relancer en boucle.
-  // Sans lui, chaque re-render du DriverProvider (polling Pusher, setCurrentRide, etc.)
-  // recréait pickupLat/pickupLon comme nouvelles références, ce qui redéclenchait
-  // l'effet → setMyLoc() → re-render → l'effet repart → boucle infinie → écran blanc.
-  const routeLoadedRef = React.useRef(false);
-  // Mémoriser les coordonnées de pickup pour les utiliser dans l'effet sans dépendance instable.
-  const stablePickupLat = React.useRef<number | undefined>(undefined);
-  const stablePickupLon = React.useRef<number | undefined>(undefined);
-  const SHEET_HEIGHT = Math.round(SCREEN_HEIGHT * 0.78);
-  const COLLAPSED_VISIBLE = Math.round(SCREEN_HEIGHT * 0.4);
-  const COLLAPSED_Y = Math.max(0, SHEET_HEIGHT - COLLAPSED_VISIBLE);
-  const sheetY = React.useRef(new Animated.Value(COLLAPSED_Y)).current;
-  const sheetYRef = React.useRef(COLLAPSED_Y);
-
+  // Une clé primitive protège contre les boucles de rendu du Provider tout en
+  // autorisant exactement un nouveau calcul lorsque la cible passe du pickup
+  // à la destination. La MapView, elle, reste montée pendant cette transition.
+  const routeLoadedRef = React.useRef<string | null>(null);
+  const hasFittedRef = React.useRef(false);
+  const activeRideRef = React.useRef(currentRide);
+  const isOnlineRef = React.useRef(true);
   const cameraRef = React.useRef<Mapbox.Camera>(null);
-
-  const clampSheetY = React.useCallback(
-    (value: number) => Math.min(COLLAPSED_Y, Math.max(0, value)),
-    [COLLAPSED_Y],
-  );
-
-  const sheetPanResponder = React.useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: (_, gesture) => Math.abs(gesture.dy) > 6,
-      onPanResponderGrant: () => {
-        sheetY.stopAnimation((v: number) => {
-          sheetYRef.current = clampSheetY(v);
-        });
-      },
-      onPanResponderMove: (_, gesture) => {
-        sheetY.setValue(clampSheetY(sheetYRef.current + gesture.dy));
-      },
-      onPanResponderRelease: (_, gesture) => {
-        sheetY.stopAnimation((v: number) => {
-          const current = clampSheetY(v);
-          const projected = clampSheetY(current + gesture.vy * 28);
-          const snap = projected > COLLAPSED_Y / 2 ? COLLAPSED_Y : 0;
-          Animated.spring(sheetY, {
-            toValue: snap,
-            useNativeDriver: true,
-            bounciness: 0,
-            speed: 18,
-          }).start(() => {
-            sheetYRef.current = snap;
-          });
-        });
-      },
-    }),
-  ).current;
 
   React.useEffect(() => {
     const interval = setInterval(() => {
       setEta((e) => (e > 1 ? e - 1 : 1));
-    }, 8000);
+    }, isOngoing ? 60000 : 8000);
     return () => clearInterval(interval);
-  }, []);
+  }, [isOngoing]);
 
   // TIMING-01 : Délai de grâce avant le premier syncCurrentRide.
   //
@@ -321,21 +257,75 @@ function PickupScreenInner() {
     }, [syncCurrentRide, log])
   );
 
-  // Capturer les coordonnées de pickup à la première montée du composant seulement.
-  // On utilise un ref (pas un state) pour éviter tout re-render supplémentaire.
-  if (
-    currentRide?.pickupLat != null &&
-    currentRide?.pickupLon != null &&
-    stablePickupLat.current === undefined
-  ) {
-    stablePickupLat.current = Number(currentRide.pickupLat);
-    stablePickupLon.current = Number(currentRide.pickupLon);
-  }
+  React.useEffect(() => {
+    activeRideRef.current = currentRide;
+  }, [currentRide]);
 
   React.useEffect(() => {
-    if (routeLoadedRef.current) return;
-    routeLoadedRef.current = true;
-    log('GPS', 'Effect GPS/OSRM démarré');
+    void checkNetworkConnection().then((state) => {
+      if (!isMounted.current) return;
+      isOnlineRef.current = state.isConnected;
+      setIsOnline(state.isConnected);
+    });
+
+    return subscribeToNetworkChanges((state) => {
+      const wasOnline = isOnlineRef.current;
+      isOnlineRef.current = state.isConnected;
+      if (isMounted.current) setIsOnline(state.isConnected);
+
+      const ride = activeRideRef.current;
+      if (!state.isConnected && wasOnline && ride?.status === 'ongoing') {
+        void saveRideState(ride);
+        showNetworkErrorAlert(true);
+      } else if (state.isConnected && !wasOnline) {
+        void syncCurrentRide();
+      }
+    });
+  }, [syncCurrentRide]);
+
+  React.useEffect(() => {
+    if (!isOngoing || !currentRide) return;
+    const interval = setInterval(() => {
+      if (isOnlineRef.current) void syncCurrentRide();
+      void saveRideState(activeRideRef.current);
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [isOngoing, currentRide?.id, syncCurrentRide]);
+
+  React.useEffect(() => {
+    if (!currentRide?.stop_started_at) {
+      setLiveStopSeconds(0);
+      return;
+    }
+    const start = new Date(currentRide.stop_started_at).getTime();
+    const interval = setInterval(() => {
+      setLiveStopSeconds(Math.max(0, Math.floor((Date.now() - start) / 1000)));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [currentRide?.stop_started_at]);
+
+  React.useEffect(() => {
+    const targetLat = Number(routeTargetLat);
+    const targetLon = Number(routeTargetLon);
+    if (!Number.isFinite(targetLat) || !Number.isFinite(targetLon)) {
+      setRouteCoords([]);
+      setCameraBounds(null);
+      log('OSRM', `Coordonnées ${routeTargetKind} invalides → itinéraire ignoré`, true);
+      return;
+    }
+
+    const routeKey = `${routeTargetKind}:${targetLat}:${targetLon}`;
+    if (routeLoadedRef.current === routeKey) return;
+    routeLoadedRef.current = routeKey;
+    hasFittedRef.current = false;
+    setMapFocusMode('overview');
+    setRouteCoords([]);
+    setCameraBounds(null);
+    if (isOngoing) {
+      if (currentRide?.duration_s) setEta(Math.ceil(currentRide.duration_s / 60));
+      if (currentRide?.distance_m) setDistance(currentRide.distance_m / 1000);
+    }
+    log('GPS', `Calcul de l'itinéraire vers ${routeTargetKind}`);
 
     (async () => {
       try {
@@ -354,36 +344,111 @@ function PickupScreenInner() {
         log('GPS', `position → lat=${position.latitude.toFixed(5)} lon=${position.longitude.toFixed(5)}`);
         if (isMounted.current) setMyLoc(position);
 
-        const pLat = stablePickupLat.current;
-        const pLon = stablePickupLon.current;
-        log('OSRM', `pickupRef → lat=${pLat} lon=${pLon} isFinite=${Number.isFinite(pLat as number) && Number.isFinite(pLon as number)}`);
+        log('OSRM', `fetchRouteOSRM → ${routeTargetKind}(${targetLat.toFixed(4)},${targetLon.toFixed(4)})`);
+        const coords = await fetchRouteOSRM(position, { latitude: targetLat, longitude: targetLon });
+        if (!isMounted.current || routeLoadedRef.current !== routeKey) return;
+        setRouteCoords(coords);
 
-        if (pLat != null && pLon != null && Number.isFinite(pLat) && Number.isFinite(pLon)) {
-          log('OSRM', `fetchRouteOSRM start → from(${position.latitude.toFixed(4)},${position.longitude.toFixed(4)}) to(${pLat.toFixed(4)},${pLon.toFixed(4)})`);
-          const coords = await fetchRouteOSRM(position, { latitude: pLat, longitude: pLon });
-          log('OSRM', `fetchRouteOSRM done → ${coords.length} coords`);
-          if (!isMounted.current) return;
-          setRouteCoords(coords);
-
+        if (isOngoing) {
+          if (currentRide?.duration_s) setEta(Math.ceil(currentRide.duration_s / 60));
           if (coords.length > 1) {
-            const allLons = [...coords.map(c => c.longitude), position.longitude, pLon];
-            const allLats = [...coords.map(c => c.latitude), position.latitude, pLat];
-            const sw: [number, number] = [Math.min(...allLons), Math.min(...allLats)];
-            const ne: [number, number] = [Math.max(...allLons), Math.max(...allLats)];
-            log('MAP', `Bounds calculés, attente de mapReady → sw=[${sw.map(v=>v.toFixed(4))}] ne=[${ne.map(v=>v.toFixed(4))}]`);
-            setCameraBounds({ ne, sw });
-          } else {
-            log('MAP', `fitBounds ignoré — coords.length=${coords.length}`, coords.length <= 1);
+            const distanceKm = coords.reduce((total, coord, index) => {
+              if (index === 0) return 0;
+              const previous = coords[index - 1];
+              const dx = coord.longitude - previous.longitude;
+              const dy = coord.latitude - previous.latitude;
+              return total + Math.sqrt(dx * dx + dy * dy) * 111;
+            }, 0);
+            setDistance(distanceKm);
+          } else if (currentRide?.distance_m) {
+            setDistance(currentRide.distance_m / 1000);
           }
+        }
+
+        if (coords.length > 1) {
+          const allLons = [...coords.map(c => c.longitude), position.longitude, targetLon];
+          const allLats = [...coords.map(c => c.latitude), position.latitude, targetLat];
+          const sw: [number, number] = [Math.min(...allLons), Math.min(...allLats)];
+          const ne: [number, number] = [Math.max(...allLons), Math.max(...allLats)];
+          setCameraBounds({ ne, sw });
         } else {
-          log('OSRM', 'Coordonnées de pickup invalides → OSRM ignoré', true);
+          log('MAP', `fitBounds ignoré — coords.length=${coords.length}`, true);
         }
       } catch (err) {
         log('GPS', `EXCEPTION: ${err}`, true);
         console.warn('Erreur chargement localisation ou route', err);
       }
     })();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    routeTargetKind,
+    routeTargetLat,
+    routeTargetLon,
+    isOngoing,
+    currentRide?.duration_s,
+    currentRide?.distance_m,
+    log,
+  ]);
+
+  // Ces hooks doivent rester avant toute sortie conditionnelle. currentRide
+  // devient null dès que completeRide termine, mais l'ordre des hooks doit
+  // rester strictement identique pendant ce dernier rendu.
+  const memoizedCenterCoordinate = React.useMemo(() => {
+    const defaultLon = 2.39;
+    const defaultLat = 6.37;
+    const targetLon = Number(routeTargetLon);
+    const targetLat = Number(routeTargetLat);
+    const currentLon = Number(myLoc?.longitude);
+    const currentLat = Number(myLoc?.latitude);
+
+    const lon = Number.isFinite(targetLon)
+      ? targetLon
+      : (Number.isFinite(currentLon) ? currentLon : defaultLon);
+    const lat = Number.isFinite(targetLat)
+      ? targetLat
+      : (Number.isFinite(currentLat) ? currentLat : defaultLat);
+    return [lon, lat];
+  }, [routeTargetLon, routeTargetLat, myLoc?.longitude, myLoc?.latitude]);
+
+  React.useEffect(() => {
+    log('MAP', `mapReady → ${mapReady}`);
+    if (!mapReady || !cameraBounds || !cameraRef.current || hasFittedRef.current) return;
+    hasFittedRef.current = true;
+
+    const timer = setTimeout(() => {
+      try {
+        // Cadre l'itinéraire dans la fenêtre réellement libre entre le bandeau
+        // supérieur et la fiche repliée + le CTA.
+        const padding = [120, 60, 420, 60] as [number, number, number, number];
+        cameraRef.current?.fitBounds(cameraBounds.ne, cameraBounds.sw, padding, 1000);
+        log('MAP', 'fitBounds exécuté');
+      } catch (err) {
+        log('MAP', `fitBounds a échoué: ${err} → fallback setCamera`, true);
+        try {
+          cameraRef.current?.setCamera({
+            centerCoordinate: [
+              (cameraBounds.ne[0] + cameraBounds.sw[0]) / 2,
+              (cameraBounds.ne[1] + cameraBounds.sw[1]) / 2,
+            ],
+            zoomLevel: 14,
+            animationDuration: 1000,
+          });
+        } catch {
+          log('MAP', 'Le fallback a aussi échoué', true);
+        }
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [mapReady, cameraBounds, log]);
+
+  const handleEtaTap = React.useCallback(() => {
+    etaTapCount.current += 1;
+    if (etaTapTimer.current) clearTimeout(etaTapTimer.current);
+    if (etaTapCount.current >= 5) {
+      etaTapCount.current = 0;
+      setDebugVisible(true);
+    } else {
+      etaTapTimer.current = setTimeout(() => { etaTapCount.current = 0; }, 1500);
+    }
   }, []);
 
   const openExternalNav = (lat: number, lon: number) =>
@@ -401,9 +466,13 @@ function PickupScreenInner() {
     );
   }
 
-  const pickupCoord = currentRide.pickupLat && currentRide.pickupLon
+  const pickupCoord = currentRide.pickupLat != null && currentRide.pickupLon != null
     ? { latitude: Number(currentRide.pickupLat), longitude: Number(currentRide.pickupLon) }
     : null;
+  const dropoffCoord = currentRide.dropoffLat != null && currentRide.dropoffLon != null
+    ? { latitude: Number(currentRide.dropoffLat), longitude: Number(currentRide.dropoffLon) }
+    : null;
+  const activeTargetCoord = isOngoing ? dropoffCoord : pickupCoord;
   const passengerName = currentRide.riderName ?? 'Passager';
   const passengerPhone = currentRide.riderPhone;
   const passengerPhoto = currentRide.riderPhoto;
@@ -416,6 +485,10 @@ function PickupScreenInner() {
   const fareDisplay = `${currentRide.fare.toLocaleString('fr-FR')} FCFA`;
   const pickupShort =
     pickupAddress.length > 42 ? `${pickupAddress.slice(0, 40)}…` : pickupAddress;
+  const dropoffShort = currentRide.order_mode === 'duration'
+    ? `Location horaire (${currentRide.duration_hours}h)`
+    : (dropoffAddress.length > 42 ? `${dropoffAddress.slice(0, 40)}…` : dropoffAddress);
+  const targetShort = isOngoing ? dropoffShort : pickupShort;
 
   const callPassenger = () => {
     if (!sanitizedPassengerPhone) return;
@@ -442,110 +515,112 @@ function PickupScreenInner() {
     },
   } as any;
 
-  // PERF-OOM-01 : Mémoïser centerCoordinate pour éviter un rendu en boucle infini
-  // de la caméra Mapbox (qui causait des plantages OutOfMemory sur Android/Xiaomi).
-  // Sécurisé contre les valeurs NaN/invalides qui peuvent faire crasher la carte native (Écran blanc).
-  const memoizedCenterCoordinate = React.useMemo(() => {
-    const defaultLon = 2.39;
-    const defaultLat = 6.37;
-    const pLon = Number(pickupCoord?.longitude);
-    const pLat = Number(pickupCoord?.latitude);
-    const mLon = Number(myLoc?.longitude);
-    const mLat = Number(myLoc?.latitude);
+  const handleCompleteRide = async () => {
+    setLoadingAction(true);
+    try {
+      if (currentRide.stop_started_at) await endStop();
 
-    const lon = Number.isFinite(pLon) ? pLon : (Number.isFinite(mLon) ? mLon : defaultLon);
-    const lat = Number.isFinite(pLat) ? pLat : (Number.isFinite(mLat) ? mLat : defaultLat);
-    return [lon, lat];
-  }, [pickupCoord?.longitude, pickupCoord?.latitude, myLoc?.longitude, myLoc?.latitude]);
+      const gpsDistanceM = distance ? Math.floor(distance * 1000) : 0;
+      const estimatedDistanceM = currentRide.distance_m || 0;
+      const finalDistanceM = gpsDistanceM < 100 && estimatedDistanceM > 500
+        ? estimatedDistanceM
+        : gpsDistanceM;
+      const finalRide = await completeRide(finalDistanceM);
 
-  // MAPBOX-STABILITY : 3 sécurités pour les téléphones Android agressifs (Xiaomi/MIUI)
-  const hasFittedRef = React.useRef(false);
-
-  React.useEffect(() => {
-    log('MAP', `mapReady → ${mapReady}`);
-    if (mapReady && cameraBounds && cameraRef.current) {
-      // 1️⃣ Exécuter UNE seule fois
-      if (hasFittedRef.current) return;
-      hasFittedRef.current = true;
-
-      log('MAP', 'Préparation de fitBounds (attente de stabilité GL)');
-      // 2️⃣ Timeout de sécurité (le renderer Xiaomi dit souvent "ready" trop tôt)
-      const timer = setTimeout(() => {
-        try {
-          const padding = [80, 60, 280, 60] as [number, number, number, number];
-          cameraRef.current?.fitBounds(cameraBounds.ne, cameraBounds.sw, padding, 1000);
-          log('MAP', 'fitBounds exécuté');
-        } catch (err) {
-          // 3️⃣ Fallback si fitBounds échoue au niveau bridge
-          log('MAP', `fitBounds a échoué: ${err} → fallback setCamera`, true);
-          try {
-            cameraRef.current?.setCamera({
-              centerCoordinate: [
-                (cameraBounds.ne[0] + cameraBounds.sw[0]) / 2,
-                (cameraBounds.ne[1] + cameraBounds.sw[1]) / 2
-              ],
-              zoomLevel: 14,
-              animationDuration: 1000,
-            });
-          } catch (fallbackErr) {
-            log('MAP', 'Le fallback a aussi échoué', true);
-          }
-        }
-      }, 300);
-      return () => clearTimeout(timer);
+      if (finalRide) {
+        router.replace({
+          pathname: '/ride/end',
+          params: {
+            fare: finalRide.fare,
+            rideId: finalRide.id,
+            // @ts-ignore paymentLink est ajouté par le backend à la fin de la course.
+            paymentLink: finalRide.paymentLink,
+          },
+        });
+      }
+    } catch {
+      Alert.alert('Erreur', 'Impossible de terminer la course.');
+    } finally {
+      setLoadingAction(false);
     }
-  }, [mapReady, cameraBounds, log]);
+  };
 
-  // Badge ETA : 5 taps pour ouvrir le panneau de debug
-  const handleEtaTap = React.useCallback(() => {
-    etaTapCount.current += 1;
-    if (etaTapTimer.current) clearTimeout(etaTapTimer.current);
-    if (etaTapCount.current >= 5) {
-      etaTapCount.current = 0;
-      setDebugVisible(true);
-    } else {
-      etaTapTimer.current = setTimeout(() => { etaTapCount.current = 0; }, 1500);
+  const handleFocusChange = () => {
+    if (!cameraRef.current) return;
+    try {
+      if (mapFocusMode === 'overview' && myLoc) {
+        setMapFocusMode('origin');
+        cameraRef.current.setCamera({
+          centerCoordinate: [myLoc.longitude, myLoc.latitude],
+          zoomLevel: 16,
+          animationDuration: 800,
+          padding: { paddingBottom: 60, paddingTop: 0, paddingLeft: 0, paddingRight: 0 },
+        });
+        return;
+      }
+
+      if ((mapFocusMode === 'origin' || (mapFocusMode === 'overview' && !myLoc)) && activeTargetCoord) {
+        setMapFocusMode('destination');
+        cameraRef.current.setCamera({
+          centerCoordinate: [activeTargetCoord.longitude, activeTargetCoord.latitude],
+          zoomLevel: 16,
+          animationDuration: 800,
+          padding: { paddingBottom: 60, paddingTop: 0, paddingLeft: 0, paddingRight: 0 },
+        });
+        return;
+      }
+
+      setMapFocusMode('overview');
+      if (cameraBounds) {
+        cameraRef.current.setCamera({
+          bounds: {
+            ne: cameraBounds.ne,
+            sw: cameraBounds.sw,
+            paddingBottom: 420,
+            paddingTop: 120,
+            paddingLeft: 60,
+            paddingRight: 60,
+          },
+          animationDuration: 800,
+        });
+      }
+    } catch (error) {
+      log('MAP', `Changement de focus impossible: ${error}`, true);
     }
-  }, []);
+  };
+
+  const mapFocusIcon: React.ComponentProps<typeof MaterialCommunityIcons>['name'] =
+    mapFocusMode === 'overview'
+      ? 'human-greeting'
+      : mapFocusMode === 'origin'
+        ? 'flag-checkered'
+        : 'map-marker-distance';
+  const mapFocusLabel =
+    mapFocusMode === 'overview'
+      ? 'Zoomer sur la position du chauffeur'
+      : mapFocusMode === 'origin'
+        ? 'Zoomer sur la destination'
+        : "Afficher l'ensemble de l'itinéraire";
 
   return (
     <SafeAreaView style={styles.container}>
       {debugVisible && <DebugPanel logs={logs} onClose={() => setDebugVisible(false)} />}
-      {/* Header premium harmonisé avec ride-ongoing */}
-      <View style={styles.header}>
-        <View style={{ flex: 1, paddingRight: 8 }}>
-          <View style={styles.phaseStrip}>
-            <Ionicons name="navigate-circle" size={16} color={Colors.primary} />
-            <Text style={styles.phaseStripText}>
-              {currentRide.service_type === 'livraison' ? 'Navigation vers le colis' : 'Navigation vers le client'}
-            </Text>
-          </View>
-          <Text style={styles.screenTitle}>
-            {currentRide.service_type === 'livraison' ? 'Collecte du colis' : 'Prise en charge'}
-          </Text>
-          <Text style={styles.screenSubtitle} numberOfLines={2}>
-            {pickupShort}
-          </Text>
-          <View style={styles.statusRow}>
-            <View style={[styles.statusDot, { backgroundColor: '#10B981' }]} />
-            <Text style={styles.statusText}>En approche</Text>
-          </View>
-        </View>
-        {/* Badge ETA : taper 5× pour ouvrir le panneau de debug */}
-        <TouchableOpacity style={styles.etaBadge} onPress={handleEtaTap} activeOpacity={0.7}>
-          <Ionicons name="time" size={16} color={Colors.primary} />
-          <Text style={styles.etaText}>{eta} min</Text>
-        </TouchableOpacity>
-      </View>
+      <DriverRideTopOverlay
+        ride={currentRide}
+        address={targetShort}
+        eta={eta}
+        isOnline={isOnline}
+        onEtaPress={handleEtaTap}
+      />
 
       {/* Carte fixe (ne doit pas bouger avec la fiche) */}
       <View style={styles.mapContainer}>
         {(!mapReady || !mapVisible) && (
           <View style={styles.mapLoader}>
             <ActivityIndicator size="large" color={Colors.primary} />
-            <Text style={{ fontSize: 18, fontFamily: Fonts.bold, marginTop: 12, color: Colors.black }}>{passengerName}</Text>
+            <Text style={{ fontSize: 18, fontFamily: Fonts.bold, marginTop: 12, color: Colors.white }}>{passengerName}</Text>
             <Text style={styles.mapLoaderText}>Chargement de l'itinéraire...</Text>
-            <Text style={{ fontSize: 14, fontFamily: Fonts.regular, color: Colors.gray, marginTop: 4, textAlign: 'center', paddingHorizontal: 20 }}>{pickupAddress}</Text>
+            <Text style={{ fontSize: 14, fontFamily: Fonts.regular, color: Colors.gray, marginTop: 4, textAlign: 'center', paddingHorizontal: 20 }}>{isOngoing ? dropoffAddress : pickupAddress}</Text>
           </View>
         )}
         {mapVisible && <Mapbox.MapView
@@ -578,14 +653,17 @@ function PickupScreenInner() {
 
           <Mapbox.UserLocation />
 
-          {mapReady && pickupCoord && (
+          {mapReady && activeTargetCoord && (
             <>
               <Mapbox.PointAnnotation
-                id="pickup"
-                coordinate={[Number(pickupCoord.longitude), Number(pickupCoord.latitude)]}
+                id="route-target"
+                coordinate={[Number(activeTargetCoord.longitude), Number(activeTargetCoord.latitude)]}
               >
-                <View collapsable={false} style={styles.markerContainer}>
-                  <View style={styles.markerInner} />
+                <View
+                  collapsable={false}
+                  style={[styles.markerContainer, isOngoing && styles.dropoffMarkerContainer]}
+                >
+                  <View style={[styles.markerInner, isOngoing && styles.dropoffMarkerInner]} />
                 </View>
               </Mapbox.PointAnnotation>
 
@@ -606,105 +684,67 @@ function PickupScreenInner() {
           )}
         </Mapbox.MapView>}
 
-        {pickupCoord && (
-          <TouchableOpacity
-            style={styles.floatingNav}
-            onPress={() => openExternalNav(pickupCoord.latitude, pickupCoord.longitude)}
-          >
-            <Ionicons name="navigate" size={24} color={Colors.white} />
-          </TouchableOpacity>
-        )}
       </View>
 
-      <Animated.View
+      <View
         style={[
           styles.sheetContainer,
           {
-            height: SHEET_HEIGHT,
-            transform: [{ translateY: sheetY }],
+            height: '40%',
+            bottom: Math.max(insets.bottom, 12) + 78,
           },
         ]}
-        {...sheetPanResponder.panHandlers}
       >
-        <View style={styles.sheetHandle} />
-        <View style={styles.sheetScroll}>
-          {/* Carte info passager épurée */}
-          <View style={styles.infoCard}>
-            {/* Passenger row */}
-            <View style={styles.passengerHeader}>
-              <View style={styles.avatarCircle}>
-                {passengerPhotoUri ? (
-                  <Image
-                    source={{ uri: passengerPhotoUri }}
-                    style={styles.avatarImage}
-                  />
-                ) : (
-                  <Ionicons name="person" size={24} color={Colors.primary} />
-                )}
-              </View>
-              <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={styles.passengerNameText} numberOfLines={1}>{passengerName}</Text>
-                {passengerPhone ? (
-                  <TouchableOpacity style={styles.ratingRow} onPress={callPassenger}>
-                    <Ionicons name="call-outline" size={13} color={Colors.primary} />
-                    <Text style={styles.ratingText} numberOfLines={1}>{passengerPhone}</Text>
-                  </TouchableOpacity>
-                ) : null}
-              </View>
-            </View>
+        <View style={styles.sheetMapControls} pointerEvents="box-none">
+          <TouchableOpacity
+            style={styles.externalMapButton}
+            disabled={!activeTargetCoord}
+            onPress={() => {
+              if (activeTargetCoord) openExternalNav(activeTargetCoord.latitude, activeTargetCoord.longitude);
+            }}
+          >
+            <Ionicons name="navigate" size={19} color={Colors.dark} />
+            <Text style={styles.externalMapButtonText}>Maps</Text>
+          </TouchableOpacity>
 
-            {/* Action buttons row */}
-            <View style={styles.actionButtonsRow}>
-              <TouchableOpacity
-                style={styles.mapsBtn}
-                onPress={() => pickupCoord && openExternalNav(pickupCoord.latitude, pickupCoord.longitude)}
-              >
-                <Ionicons name="navigate" size={18} color={Colors.white} />
-                <Text style={styles.mapsBtnText}>MAPS</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.roundIconBtn} onPress={callPassenger}>
-                <Ionicons name="call" size={20} color={Colors.primary} />
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.roundIconBtn} onPress={whatsappPassenger}>
-                <Ionicons name="logo-whatsapp" size={20} color="#25D366" />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.divider} />
-
-            <View style={styles.locationRow}>
-              <View style={styles.dotLine}>
-                <View style={[styles.dot, { backgroundColor: Colors.primary }]} />
-                <View style={styles.line} />
-                <View style={[styles.dot, { backgroundColor: Colors.secondary }]} />
-              </View>
-              <View style={{ flex: 1, gap: 12 }}>
-                <View>
-                  <Text style={styles.locLabel}>DÉPART</Text>
-                  <Text style={styles.locValue} numberOfLines={1}>{pickupAddress}</Text>
-                </View>
-                <View>
-                  <Text style={styles.locLabel}>DESTINATION</Text>
-                  {currentRide.order_mode === 'duration' ? (
-                    <Text style={styles.locValue} numberOfLines={1}>⏱ Location horaire ({currentRide.duration_hours}h)</Text>
-                  ) : (
-                    <Text style={styles.locValue} numberOfLines={1}>{dropoffAddress}</Text>
-                  )}
-                </View>
-              </View>
-            </View>
-
-            <View style={styles.fareHighlight}>
-              <Text style={styles.fareLabelSmall}>PRIX ESTIMÉ</Text>
-              <Text style={styles.fareAmountLarge}>{fareDisplay}</Text>
-            </View>
-
-            {currentRide.status === 'arrived' && currentRide.arrived_at && (
-              <WaitTimer arrivedAt={currentRide.arrived_at} />
-            )}
-          </View>
+          <TouchableOpacity
+            style={styles.recenterButton}
+            onPress={handleFocusChange}
+            accessibilityRole="button"
+            accessibilityLabel={mapFocusLabel}
+          >
+            <MaterialCommunityIcons name={mapFocusIcon} size={24} color={Colors.dark} />
+          </TouchableOpacity>
         </View>
-      </Animated.View>
+
+        <ScrollView
+          style={styles.sheetScroll}
+          contentContainerStyle={styles.sheetScrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <DriverRideDetails
+            ride={currentRide}
+            passengerName={passengerName}
+            passengerPhone={passengerPhone}
+            passengerPhotoUri={passengerPhotoUri}
+            pickupAddress={pickupAddress}
+            dropoffAddress={dropoffAddress}
+            fareDisplay={fareDisplay}
+            eta={eta}
+            distance={distance}
+            liveStopSeconds={liveStopSeconds}
+            onCall={callPassenger}
+            onWhatsApp={whatsappPassenger}
+            onStartStop={() => { void startStop(); }}
+            onEndStop={() => { void endStop(); }}
+            onCallRecipient={() => {
+              if (currentRide.recipient_phone) {
+                void Linking.openURL(`tel:${currentRide.recipient_phone.replace(/\s/g, '')}`);
+              }
+            }}
+          />
+        </ScrollView>
+      </View>
 
       {/* Barre d'action fixe, indépendante du mouvement du sheet */}
       <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 12) + 12 }]}>
@@ -726,31 +766,38 @@ function PickupScreenInner() {
             {loadingAction ? (
               <ActivityIndicator color={Colors.white} />
             ) : (
-              <Text style={styles.primaryActionText}>JE SUIS ARRIVÉ</Text>
+                <Text style={styles.primaryActionText}>
+                  {currentRide.service_type === 'livraison' ? 'Je suis sur place' : 'Je suis arrivé'}
+                </Text>
             )}
           </TouchableOpacity>
-        ) : (
-          <TouchableOpacity
-            style={[styles.successActionBtn, loadingAction && styles.disabledBtn]}
+        ) : currentRide.status === 'arrived' ? (
+          <SlideToConfirm
+            label={currentRide.service_type === 'livraison'
+              ? 'Glisser pour démarrer la livraison'
+              : 'Glisser pour démarrer la course'}
+            loading={loadingAction}
             disabled={loadingAction}
-            onPress={async () => {
+            onConfirm={async () => {
               setLoadingAction(true);
               try {
                 await setPickupDone();
-                router.replace('/ride-ongoing');
               } catch {
                 Alert.alert('Erreur', 'Impossible de confirmer la prise en charge.');
               } finally {
                 setLoadingAction(false);
               }
             }}
-          >
-            {loadingAction ? (
-              <ActivityIndicator color={Colors.white} />
-            ) : (
-              <Text style={styles.primaryActionText}>PASSAGER À BORD</Text>
-            )}
-          </TouchableOpacity>
+          />
+        ) : (
+          <SlideToConfirm
+            label={currentRide.service_type === 'livraison'
+              ? 'Glisser pour terminer la livraison'
+              : 'Glisser pour terminer la course'}
+            loading={loadingAction}
+            disabled={!isOnline || loadingAction}
+            onConfirm={handleCompleteRide}
+          />
         )}
       </View>
     </SafeAreaView>
@@ -767,109 +814,77 @@ export default function PickupScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+  container: { flex: 1, backgroundColor: Colors.dark },
   sheetContainer: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: Colors.white,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    overflow: 'hidden',
+    backgroundColor: 'rgba(15, 15, 15, 0.96)',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    borderColor: 'rgba(255,255,255,0.12)',
+    overflow: 'visible',
     zIndex: 30,
   },
   sheetScroll: { flex: 1 },
-  sheetHandle: {
-    alignSelf: 'center',
-    width: 40,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: '#E2E8F0',
-    marginTop: 10,
-    marginBottom: 8,
-    zIndex: 2,
-  },
-
-  header: {
+  sheetScrollContent: { paddingTop: 14, paddingBottom: 16 },
+  sheetMapControls: {
+    position: 'absolute',
+    top: -60,
+    left: 16,
+    right: 16,
+    zIndex: 60,
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 14,
-    backgroundColor: Colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.lightGray,
   },
-  phaseStrip: {
+  externalMapButton: {
+    height: 48,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(54, 80, 208, 0.08)',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
-    marginBottom: 8,
+    gap: 7,
+    paddingHorizontal: 17,
+    borderRadius: 16,
+    backgroundColor: Colors.primary,
+    borderWidth: 1,
+    borderColor: 'rgba(26,26,26,0.16)',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.22,
+    shadowRadius: 8,
   },
-  phaseStripText: {
-    fontSize: 11,
+  externalMapButtonText: {
     fontFamily: Fonts.bold,
-    color: Colors.primary,
-    letterSpacing: 0.2,
-  },
-  screenTitle: {
-    fontSize: 19,
-    fontFamily: Fonts.bold,
-    color: Colors.black,
-  },
-  screenSubtitle: {
-    fontSize: 13,
-    fontFamily: Fonts.semiBold,
-    color: Colors.gray,
-    marginTop: 4,
-    lineHeight: 18,
-  },
-  statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 4,
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  statusText: {
-    fontSize: 12,
-    fontFamily: Fonts.regular,
-    color: Colors.gray,
-  },
-  etaBadge: {
-    flexDirection: 'row',
-    backgroundColor: '#EEF2FF',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    alignItems: 'center',
-    gap: 6
-  },
-  etaText: {
-    color: Colors.primary,
     fontSize: 14,
-    fontFamily: Fonts.bold
+    color: Colors.dark,
+  },
+  recenterButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: 'rgba(26,26,26,0.12)',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
   },
 
   mapContainer: {
-    height: 380,
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: 'transparent',
-    position: 'relative',
   },
   mapLoader: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255,255,255,0.8)',
+    backgroundColor: '#171717',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 10,
@@ -877,34 +892,17 @@ const styles = StyleSheet.create({
   mapLoaderText: {
     marginTop: 12,
     fontFamily: Fonts.semiBold,
-    color: Colors.primary,
+    color: 'rgba(255,255,255,0.7)',
     fontSize: 14,
   },
   map: { flex: 1 },
-  floatingNav: {
-    position: 'absolute',
-    right: 14,
-    top: 14,
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: 'rgba(26, 26, 26, 0.78)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.35)',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-  },
-
   markerContainer: {
-    height: 24,
-    width: 24,
-    backgroundColor: Colors.white,
-    borderRadius: 12,
+    height: 32,
+    width: 32,
+    backgroundColor: Colors.dark,
+    borderRadius: 16,
+    borderWidth: 3,
+    borderColor: Colors.white,
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 4,
@@ -914,190 +912,17 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
   },
   markerInner: {
-    height: 12,
-    width: 12,
+    height: 13,
+    width: 13,
     backgroundColor: Colors.primary,
     borderRadius: 6,
   },
-
-  infoCard: {
-    marginTop: 0,
-    marginHorizontal: 0,
-    backgroundColor: Colors.white,
-    borderTopLeftRadius: 0,
-    borderTopRightRadius: 0,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
-    padding: 20,
-    elevation: 0,
-    shadowOpacity: 0,
+  dropoffMarkerContainer: {
+    borderWidth: 2,
+    borderColor: Colors.secondary,
   },
-  passengerHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  avatarCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#F3F4FB',
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden' as const,
-  },
-  avatarImage: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-  },
-  passengerNameText: {
-    color: Colors.black,
-    fontSize: 17,
-    fontFamily: Fonts.bold,
-  },
-  ratingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginTop: 3,
-  },
-  ratingText: {
-    fontSize: 13,
-    fontFamily: Fonts.regular,
-    color: Colors.gray,
-  },
-  actionButtonsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 16,
-  },
-  actionIcons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  mapsBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  dropoffMarkerInner: {
     backgroundColor: Colors.secondary,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 12,
-    gap: 6,
-  },
-  mapsBtnText: {
-    color: Colors.white,
-    fontFamily: Fonts.bold,
-    fontSize: 13,
-  },
-  roundIconBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: Colors.white,
-    borderWidth: 1.5,
-    borderColor: '#EEEEEE',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  divider: {
-    height: 1,
-    backgroundColor: Colors.lightGray,
-    marginBottom: 20,
-  },
-  locationRow: {
-    flexDirection: 'row',
-    gap: 15,
-    marginBottom: 20,
-  },
-  dotLine: {
-    alignItems: 'center',
-    paddingVertical: 5,
-  },
-  dot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  line: {
-    width: 2,
-    flex: 1,
-    backgroundColor: Colors.lightGray,
-    marginVertical: 4,
-  },
-  locLabel: {
-    fontSize: 10,
-    fontFamily: Fonts.bold,
-    color: Colors.gray,
-    letterSpacing: 1,
-  },
-  locValue: {
-    fontSize: 15,
-    fontFamily: Fonts.semiBold,
-    color: Colors.black,
-    marginTop: 2,
-  },
-
-  fareHighlight: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 16,
-    padding: 15,
-    alignItems: 'center',
-  },
-  fareLabelSmall: {
-    fontSize: 11,
-    fontFamily: Fonts.bold,
-    color: Colors.gray,
-    letterSpacing: 0.5,
-  },
-  fareAmountLarge: {
-    fontSize: 24,
-    fontFamily: Fonts.bold,
-    color: '#10B981',
-    marginTop: 2,
-  },
-
-  timerCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F0F9FF',
-    borderRadius: 16,
-    padding: 16,
-    marginTop: 15,
-    gap: 12,
-    borderWidth: 1,
-    borderColor: '#BAE6FD',
-  },
-  timerCardAlert: {
-    borderColor: '#FECACA',
-    backgroundColor: '#FEF2F2',
-  },
-  timerLabel: {
-    color: Colors.gray,
-    fontSize: 12,
-    fontFamily: Fonts.semiBold,
-  },
-  timerValue: {
-    color: Colors.black,
-    fontSize: 18,
-    fontFamily: Fonts.bold,
-  },
-  timerValueAlert: {
-    color: Colors.error,
-  },
-  feeBadge: {
-    backgroundColor: Colors.white,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#FECACA',
-  },
-  feeText: {
-    color: Colors.error,
-    fontFamily: Fonts.bold,
-    fontSize: 13,
   },
 
   emptyContainer: {
@@ -1130,11 +955,11 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: Colors.white,
+    backgroundColor: 'rgba(15,15,15,0.98)',
     paddingHorizontal: 20,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: Colors.lightGray,
+    borderTopColor: 'rgba(255,255,255,0.1)',
     zIndex: 80,
     elevation: 80,
   },
@@ -1150,23 +975,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 8,
   },
-  successActionBtn: {
-    backgroundColor: '#10B981',
-    height: 56,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 4,
-    shadowColor: '#10B981',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-  },
   primaryActionText: {
-    color: Colors.white,
+    color: Colors.dark,
     fontSize: 16,
     fontFamily: Fonts.bold,
-    letterSpacing: 1,
+    letterSpacing: 0.1,
   },
   disabledBtn: {
     backgroundColor: Colors.gray,
