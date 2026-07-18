@@ -596,9 +596,11 @@ export default function DriverDashboardScreen() {
   }, [loadDashboardData]);
 
   const subscriptionRemaining = driverProfile?.subscription_remaining_rides ?? null;
+  const subscriptionPackPrice = Number(driverProfile?.subscription_pack_price ?? 500);
+  const subscriptionPackRides = Number(driverProfile?.subscription_pack_rides ?? 10);
   /** Avoir de l'argent = avoir l'abonnement (renouvellement auto côté serveur).
-   *  Le popup n'apparaît que si solde + bonus ne couvrent pas les 500 F du pack. */
-  const canAffordSubscription = walletBalance + walletBonus >= 500;
+   *  Le popup n'apparaît que si solde + bonus ne couvrent pas le pack configuré. */
+  const canAffordSubscription = walletBalance + walletBonus >= subscriptionPackPrice;
   const showSubscriptionModal =
     initialDashboardLoadDone &&
     subscriptionRemaining !== null &&
@@ -821,9 +823,11 @@ export default function DriverDashboardScreen() {
       <SubscriptionModal
         visible={showSubscriptionModal}
         remainingRides={subscriptionRemaining ?? 0}
+        packPrice={subscriptionPackPrice}
+        packRides={subscriptionPackRides}
         onRecharge={() => {
           setSubscriptionDismissed(true);
-          router.push({ pathname: '/wallet-topup', params: { minAmount: '500' } });
+          router.push({ pathname: '/wallet-topup', params: { minAmount: String(subscriptionPackPrice) } });
         }}
         onClose={() => setSubscriptionDismissed(true)}
       />
@@ -835,6 +839,8 @@ export default function DriverDashboardScreen() {
         monthlyEarnings={apiStats.monthEarnings}
         totalRevenue={apiStats.monthFare}
         completedRidesCount={apiStats.monthRides}
+        packPrice={subscriptionPackPrice}
+        packRides={subscriptionPackRides}
       />
     </SafeAreaView>
   );

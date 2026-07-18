@@ -10,6 +10,8 @@ interface MonthlyEarningsModalProps {
     monthlyEarnings: number;
     totalRevenue: number;
     completedRidesCount: number;
+    packPrice: number;
+    packRides: number;
 }
 
 export function MonthlyEarningsModal({
@@ -17,10 +19,11 @@ export function MonthlyEarningsModal({
     onClose,
     monthlyEarnings,
     totalRevenue,
-    completedRidesCount
+    completedRidesCount,
+    packPrice,
+    packRides,
 }: MonthlyEarningsModalProps) {
     const currentMonth = new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
-    const commission = 20; // 20%
 
     return (
         <Modal
@@ -53,7 +56,7 @@ export function MonthlyEarningsModal({
                                 {monthlyEarnings.toLocaleString('fr-FR')} <Text style={styles.currency}>FCFA</Text>
                             </Text>
                             <View style={styles.commissionBadge}>
-                                <Text style={styles.commissionText}>{commission}% de commission</Text>
+                                <Text style={styles.commissionText}>100 % du tarif des courses</Text>
                             </View>
                         </View>
 
@@ -92,7 +95,7 @@ export function MonthlyEarningsModal({
                         <View style={styles.infoContainer}>
                             <Ionicons name="information-circle" size={20} color={Colors.primary} />
                             <Text style={styles.infoText}>
-                                Vous recevez {commission}% du montant total de chaque course terminée.
+                                Vous gardez 100 % du tarif avant promotion. Kêkênon fonctionne avec un pack de {packRides} courses à {packPrice.toLocaleString('fr-FR')} F, sans commission proportionnelle.
                             </Text>
                         </View>
                     </ScrollView>

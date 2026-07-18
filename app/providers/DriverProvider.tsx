@@ -57,7 +57,7 @@ export type Ride = {
   pickup: string;
   dropoff: string;
   fare: number;
-  driverEarnings?: number; // Earnings after commission
+  driverEarnings?: number; // Gain du zem, sans commission proportionnelle
   status: RideStatus;
   startedAt?: number;
   completedAt?: number;
@@ -192,15 +192,24 @@ export function DriverProvider({ children }: { children: React.ReactNode }) {
   // Miroir de currentRide lisible dans les callbacks sans les recréer (deps stables)
   const currentRideRef = useRef<Ride | null>(null);
 
+  const clearCurrentRideState = useCallback(async () => {
+    currentRideRef.current = null;
+    setCurrentRide(null);
+    try {
+      await AsyncStorage.multiRemove(['current_ride_obj', 'current_ride_id']);
+    } catch { }
+  }, []);
+
   // Helper pour gérer les 401
   const handleUnauthorized = useCallback(async () => {
     try {
       await removeAuthToken();
       await AsyncStorage.removeItem('authUser');
+      await clearCurrentRideState();
       setOnline(false);
       router.replace('/driver-onboarding');
     } catch { }
-  }, [router]);
+  }, [clearCurrentRideState, router]);
 
   const mapBackendRideStatus = useCallback((status?: string | null): RideStatus => {
     if (!status) return 'incoming';
@@ -211,6 +220,7 @@ export function DriverProvider({ children }: { children: React.ReactNode }) {
     if (s === 'accepted') return 'pickup';
     if (s === 'arrived') return 'arrived';
     if (s === 'pickup') return 'pickup';
+    if (s === 'started') return 'ongoing';
     if (s === 'ongoing') return 'ongoing';
     if (s === 'completed' || s === 'payed' || s === 'paid') return 'completed';
     if (s === 'cancelled') return 'cancelled';
@@ -455,7 +465,7 @@ export function DriverProvider({ children }: { children: React.ReactNode }) {
             return;
           }
         }
-        setCurrentRide(null);
+        await clearCurrentRideState();
         return;
       }
 
@@ -467,7 +477,7 @@ export function DriverProvider({ children }: { children: React.ReactNode }) {
       const json = await res.json().catch(() => null);
       const ride = mapApiRideToState(json);
       if (!ride) {
-        setCurrentRide(null);
+        await clearCurrentRideState();
         return;
       }
 
@@ -476,7 +486,7 @@ export function DriverProvider({ children }: { children: React.ReactNode }) {
     } catch (e) {
       console.error('[DriverStore] syncCurrentRide error:', e);
     }
-  }, [mapApiRideToState, handleUnauthorized]);
+  }, [clearCurrentRideState, mapApiRideToState, handleUnauthorized]);
 
   const checkForIncomingOffer = useCallback(async () => {
     try {
@@ -598,10 +608,29 @@ export function DriverProvider({ children }: { children: React.ReactNode }) {
           }
         }
         if (savedNavPref === 'waze' || savedNavPref === 'gmaps' || savedNavPref === 'auto') setNavPref(savedNavPref);
+        await syncCurrentRide();
       } catch { }
     })();
     refreshProfile().catch(() => { });
-  }, [refreshProfile]);
+  }, [refreshProfile, syncCurrentRide]);
+
+  // Le cache sert uniquement à afficher rapidement une course après un crash.
+  // Dès que l'app revient au premier plan, le serveur reprend la main et purge
+  // immédiatement toute course locale qui n'est plus active.
+  useEffect(() => {
+    const onAppStateChange = (state: AppStateStatus) => {
+      if (state === 'active') void syncCurrentRide();
+    };
+    const subscription = AppState.addEventListener('change', onAppStateChange);
+    const interval = setInterval(() => {
+      if (AppState.currentState === 'active') void syncCurrentRide();
+    }, 30000);
+
+    return () => {
+      subscription.remove();
+      clearInterval(interval);
+    };
+  }, [syncCurrentRide]);
 
 
 
@@ -633,7 +662,7 @@ export function DriverProvider({ children }: { children: React.ReactNode }) {
         if (currentRide && currentRide.status !== 'completed' && currentRide.status !== 'cancelled') {
           await AsyncStorage.setItem('current_ride_obj', JSON.stringify(currentRide));
         } else {
-          await AsyncStorage.removeItem('current_ride_obj');
+          await AsyncStorage.multiRemove(['current_ride_obj', 'current_ride_id']);
         }
       } catch { }
     })();
@@ -840,9 +869,11 @@ export function DriverProvider({ children }: { children: React.ReactNode }) {
       setAvailableOffers(prev => [rideSnapshot, ...prev]);
     };
 
+    // Accepter une course EXIGE le serveur : sans API joignable, on ne simule
+    // JAMAIS une acceptation (sinon le zem file en « aller chercher » alors que
+    // la course reste 'requested' côté serveur → le client reste en recherche).
     if (!getApiBaseUrl()) {
-      applyOptimistic();
-      return;
+      throw new Error('Serveur indisponible. Vérifiez votre connexion et réessayez.');
     }
 
     applyOptimistic();
@@ -1011,12 +1042,66 @@ export function DriverProvider({ children }: { children: React.ReactNode }) {
     const ride = currentRide;
     if (!ride) return null;
 
+    const finalizeLocally = (serverRide?: any, completion?: any): Ride => {
+      const mappedRide = serverRide ? mapApiRideToState(serverRide) : null;
+      const finalRide: Ride = {
+        ...ride,
+        ...(mappedRide ?? {}),
+        status: 'completed',
+        completedAt: mappedRide?.completedAt ?? Date.now(),
+      };
+      const paymentLink = completion?.payment_link ?? serverRide?.payment_link;
+      if (paymentLink) {
+        (finalRide as Ride & { paymentLink?: string }).paymentLink = paymentLink;
+      }
+      if (completion?.earned !== undefined) {
+        (finalRide as Ride & { earned?: number }).earned = Number(completion.earned);
+      }
+
+      setCurrentRide(null);
+      setHistory((history) =>
+        sortRidesMostRecentFirst([finalRide, ...history.filter((item) => item.id !== finalRide.id)]),
+      );
+      return finalRide;
+    };
+
     try {
       if (!getApiBaseUrl()) return null;
       const token = await getAuthToken();
       if (!token) return null;
       const rideId = ride.id;
       if (!rideId) return null;
+
+      // Pré-vol : le cache local peut être en retard après un retour d'arrière-plan.
+      // On vérifie l'état serveur avant toute écriture financière de fin de course.
+      const stateRes = await apiFetch(`/driver/rides/${rideId}`, {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+      });
+      if (stateRes?.status === 401) {
+        handleUnauthorized();
+        return null;
+      }
+      if (stateRes?.ok) {
+        const serverRide = await stateRes.json().catch(() => null);
+        const serverStatus = String(serverRide?.status ?? '').toLowerCase();
+        if (serverStatus === 'completed') {
+          return finalizeLocally(serverRide, serverRide);
+        }
+        if (!['ongoing', 'started'].includes(serverStatus)) {
+          const syncedRide = mapApiRideToState(serverRide);
+          if (syncedRide) setCurrentRide(syncedRide);
+          Alert.alert(
+            'Course non démarrée',
+            "L'état de la course a été actualisé. Démarrez d'abord la course avant de la terminer.",
+          );
+          return null;
+        }
+      } else if (ride.status !== 'ongoing') {
+        await syncCurrentRide();
+        Alert.alert('Synchronisation', "Actualisation de l'état de la course nécessaire. Réessayez ensuite.");
+        return null;
+      }
 
       const res = await apiFetch(`/driver/trips/${rideId}/complete`, {
         method: 'POST',
@@ -1031,33 +1116,19 @@ export function DriverProvider({ children }: { children: React.ReactNode }) {
 
       if (res?.ok) {
         const json = await res.json();
-        let finalRide: Ride = {
-          ...ride,
-          status: 'completed',
-          completedAt: Date.now(),
-        };
-
-        // Update finalRide with backend values
-        if (json.ride) {
-          finalRide = { ...finalRide, ...json.ride };
-        }
-        if (json.payment_link) {
-          // @ts-ignore - Adding dynamic property for now, ideally update Ride type
-          finalRide.paymentLink = json.payment_link;
-        }
-        // If 'earned' or other fields:
-        if (json.earned !== undefined) {
-          // @ts-ignore
-          finalRide.earned = json.earned;
-        }
-
-        setCurrentRide(null);
-        setHistory((h) => [...h, finalRide]);
-        return finalRide;
+        return finalizeLocally(json.ride, json);
       } else {
         const err = res ? await res.json().catch(() => ({})) : {};
         console.error('[DriverStore] complete trip failed:', err);
-        Alert.alert('Erreur', (err as { message?: string }).message || 'Impossible de terminer la course sur le serveur.');
+        if (res?.status === 422 && (err as { message?: string }).message === 'Invalid state') {
+          await syncCurrentRide();
+          Alert.alert(
+            'Course actualisée',
+            "L'état de cette course avait changé sur le serveur. Vérifiez l'action affichée puis réessayez.",
+          );
+        } else {
+          Alert.alert('Erreur', (err as { message?: string }).message || 'Impossible de terminer la course sur le serveur.');
+        }
         return null;
       }
     } catch (error) {
@@ -1065,7 +1136,7 @@ export function DriverProvider({ children }: { children: React.ReactNode }) {
       Alert.alert('Erreur réseau', 'Impossible de terminer la course. Vérifiez votre connexion.');
       return null;
     }
-  }, [currentRide]);
+  }, [currentRide, handleUnauthorized, mapApiRideToState, syncCurrentRide]);
 
   const loadHistoryFromBackend = useCallback(async () => {
     try {

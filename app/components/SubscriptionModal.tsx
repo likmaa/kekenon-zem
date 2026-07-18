@@ -7,6 +7,8 @@ import { Fonts } from '../../font';
 interface Props {
   visible: boolean;
   remainingRides: number;
+  packPrice: number;
+  packRides: number;
   onRecharge: () => void;
   onClose: () => void;
 }
@@ -14,9 +16,9 @@ interface Props {
 /**
  * Popup abonnement conducteur — l'abonnement se renouvelle AUTOMATIQUEMENT
  * depuis le portefeuille (solde puis bonus). Ce popup n'apparaît donc que
- * lorsque le zem n'a plus de quoi couvrir les 500 F : il invite à recharger.
+ * lorsque le zem ne peut plus couvrir le prix du pack configuré : il invite à recharger.
  */
-export default function SubscriptionModal({ visible, remainingRides, onRecharge, onClose }: Props) {
+export default function SubscriptionModal({ visible, remainingRides, packPrice, packRides, onRecharge, onClose }: Props) {
   const depleted = remainingRides <= 0;
 
   return (
@@ -41,8 +43,8 @@ export default function SubscriptionModal({ visible, remainingRides, onRecharge,
 
           <Text style={styles.desc}>
             {depleted
-              ? "Votre pack de courses est épuisé et votre solde ne couvre pas les 500 F du renouvellement automatique. Rechargez votre compte pour continuer à rouler."
-              : "Votre pack arrive à sa fin et votre solde ne couvre pas les 500 F du renouvellement automatique. Rechargez pour ne pas être interrompu."}
+              ? `Votre pack est épuisé et votre solde ne couvre pas les ${packPrice.toLocaleString('fr-FR')} F du renouvellement automatique (${packRides} courses). Rechargez pour continuer à rouler.`
+              : `Votre pack arrive à sa fin. Rechargez au moins ${packPrice.toLocaleString('fr-FR')} F pour renouveler automatiquement ${packRides} courses.`}
           </Text>
 
           <TouchableOpacity style={styles.renewBtn} onPress={onRecharge} activeOpacity={0.85}>

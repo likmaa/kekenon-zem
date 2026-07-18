@@ -189,7 +189,15 @@ function RootLayoutNav() {
     <ThemeProvider value={DefaultTheme}>
       <AppUpdateGate app="driver" />
       <DriverProvider>
-        <Stack>
+        <Stack
+          screenOptions={{
+            animation: 'slide_from_right',
+            animationDuration: 260,
+            gestureEnabled: true,
+            fullScreenGestureEnabled: Platform.OS === 'ios',
+            animationMatchesGesture: Platform.OS === 'ios',
+          }}
+        >
           {/* Onboarding / pré-flux */}
           <Stack.Screen name="index" options={{ headerShown: false }} />
           <Stack.Screen name="driver-onboarding" options={{ headerShown: false }} />
@@ -213,21 +221,39 @@ function RootLayoutNav() {
               headerShown: false,
               presentation: 'transparentModal',
               animation: 'fade',
+              animationDuration: 200,
             }}
           />
-          <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+          <Stack.Screen
+            name="modal"
+            options={{ presentation: 'modal', animation: 'slide_from_bottom', animationDuration: 240 }}
+          />
           <Stack.Screen
             name="incoming"
             options={{
               title: 'Demande entrante',
               presentation: 'modal',
               headerShown: false,
+              animation: 'slide_from_bottom',
+              animationDuration: 240,
             }}
           />
-          <Stack.Screen name="pickup" options={{ title: 'Prise en charge', headerShown: false }} />
-          <Stack.Screen name="ride-ongoing" options={{ title: 'Course en cours', headerShown: false }} />
-          <Stack.Screen name="ride/end" options={{ title: 'Course terminée', headerShown: false }} />
-          <Stack.Screen name="ride/negotiation" options={{ title: 'Négociation', headerShown: false }} />
+          <Stack.Screen
+            name="pickup"
+            options={{ title: 'Prise en charge', headerShown: false, animation: 'fade', animationDuration: 220 }}
+          />
+          <Stack.Screen
+            name="ride-ongoing"
+            options={{ title: 'Course en cours', headerShown: false, animation: 'fade', animationDuration: 220 }}
+          />
+          <Stack.Screen
+            name="ride/end"
+            options={{ title: 'Course terminée', headerShown: false, animation: 'fade_from_bottom', animationDuration: 240 }}
+          />
+          <Stack.Screen
+            name="ride/negotiation"
+            options={{ title: 'Négociation', headerShown: false, animation: 'fade_from_bottom', animationDuration: 240 }}
+          />
           <Stack.Screen name="complete" options={{ title: 'Terminer' }} />
           <Stack.Screen name="notifications" options={{ headerShown: false }} />
           <Stack.Screen name="wallet-topup" options={{ headerShown: false }} />

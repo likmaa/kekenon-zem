@@ -23,6 +23,7 @@ export default function TabLayout() {
       tabBar={renderTabBar}
       screenOptions={{
         headerShown: false,
+        animation: 'fade',
       }}
     >
       <Tabs.Screen

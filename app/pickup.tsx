@@ -789,7 +789,7 @@ function PickupScreenInner() {
               }
             }}
           />
-        ) : (
+        ) : currentRide.status === 'ongoing' ? (
           <SlideToConfirm
             label={currentRide.service_type === 'livraison'
               ? 'Glisser pour terminer la livraison'
@@ -798,6 +798,25 @@ function PickupScreenInner() {
             disabled={!isOnline || loadingAction}
             onConfirm={handleCompleteRide}
           />
+        ) : (
+          <TouchableOpacity
+            style={[styles.primaryActionBtn, loadingAction && styles.disabledBtn]}
+            disabled={loadingAction}
+            onPress={async () => {
+              setLoadingAction(true);
+              try {
+                await syncCurrentRide();
+              } finally {
+                setLoadingAction(false);
+              }
+            }}
+          >
+            {loadingAction ? (
+              <ActivityIndicator color={Colors.white} />
+            ) : (
+              <Text style={styles.primaryActionText}>Actualiser la course</Text>
+            )}
+          </TouchableOpacity>
         )}
       </View>
     </SafeAreaView>
