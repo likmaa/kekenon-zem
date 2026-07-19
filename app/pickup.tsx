@@ -9,6 +9,8 @@ import {
   Linking,
   ActivityIndicator,
   ScrollView,
+  Modal,
+  TextInput,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -186,6 +188,8 @@ function PickupScreenInner() {
   const [myLoc, setMyLoc] = React.useState<{ latitude: number; longitude: number } | null>(null);
   const [routeCoords, setRouteCoords] = React.useState<{ latitude: number; longitude: number }[]>([]);
   const [loadingAction, setLoadingAction] = React.useState(false);
+  const [deliveryCodeModalVisible, setDeliveryCodeModalVisible] = React.useState(false);
+  const [deliveryCode, setDeliveryCode] = React.useState('');
   const [isOnline, setIsOnline] = React.useState(true);
   const [liveStopSeconds, setLiveStopSeconds] = React.useState(0);
   const [mapReady, setMapReady] = React.useState(false);
@@ -515,7 +519,7 @@ function PickupScreenInner() {
     },
   } as any;
 
-  const handleCompleteRide = async () => {
+  const handleCompleteRide = async (confirmationCode?: string) => {
     setLoadingAction(true);
     try {
       if (currentRide.stop_started_at) await endStop();
@@ -525,9 +529,11 @@ function PickupScreenInner() {
       const finalDistanceM = gpsDistanceM < 100 && estimatedDistanceM > 500
         ? estimatedDistanceM
         : gpsDistanceM;
-      const finalRide = await completeRide(finalDistanceM);
+      const finalRide = await completeRide(finalDistanceM, confirmationCode);
 
       if (finalRide) {
+        setDeliveryCodeModalVisible(false);
+        setDeliveryCode('');
         router.replace({
           pathname: '/ride/end',
           params: {
@@ -796,7 +802,13 @@ function PickupScreenInner() {
               : 'Glisser pour terminer la course'}
             loading={loadingAction}
             disabled={!isOnline || loadingAction}
-            onConfirm={handleCompleteRide}
+            onConfirm={() => {
+              if (currentRide.service_type === 'livraison') {
+                setDeliveryCodeModalVisible(true);
+              } else {
+                void handleCompleteRide();
+              }
+            }}
           />
         ) : (
           <TouchableOpacity
@@ -819,6 +831,40 @@ function PickupScreenInner() {
           </TouchableOpacity>
         )}
       </View>
+
+      <Modal visible={deliveryCodeModalVisible} transparent animationType="fade" onRequestClose={() => setDeliveryCodeModalVisible(false)}>
+        <View style={styles.codeModalBackdrop}>
+          <View style={styles.codeModalCard}>
+            <View style={styles.codeModalIcon}>
+              <Ionicons name="shield-checkmark" size={26} color={Colors.dark} />
+            </View>
+            <Text style={styles.codeModalTitle}>Confirmer la remise</Text>
+            <Text style={styles.codeModalHint}>Demandez au destinataire le code à 4 chiffres affiché sur l’application du client.</Text>
+            <TextInput
+              value={deliveryCode}
+              onChangeText={(value) => setDeliveryCode(value.replace(/\D/g, '').slice(0, 4))}
+              keyboardType="number-pad"
+              maxLength={4}
+              autoFocus
+              placeholder="0000"
+              placeholderTextColor="#94A3B8"
+              style={styles.codeInput}
+            />
+            <View style={styles.codeModalActions}>
+              <TouchableOpacity style={styles.codeCancelButton} onPress={() => setDeliveryCodeModalVisible(false)} disabled={loadingAction}>
+                <Text style={styles.codeCancelText}>Annuler</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.codeConfirmButton, deliveryCode.length !== 4 && styles.disabledBtn]}
+                disabled={deliveryCode.length !== 4 || loadingAction}
+                onPress={() => void handleCompleteRide(deliveryCode)}
+              >
+                {loadingAction ? <ActivityIndicator size="small" color={Colors.dark} /> : <Text style={styles.codeConfirmText}>Valider</Text>}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -1004,5 +1050,32 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.gray,
     elevation: 0,
     shadowOpacity: 0,
-  }
+  },
+  codeModalBackdrop: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: 24,
+    backgroundColor: 'rgba(0,0,0,0.72)',
+  },
+  codeModalCard: { borderRadius: 24, backgroundColor: '#FFFFFF', padding: 22, alignItems: 'center' },
+  codeModalIcon: { width: 52, height: 52, borderRadius: 18, backgroundColor: Colors.primary, alignItems: 'center', justifyContent: 'center' },
+  codeModalTitle: { marginTop: 14, fontFamily: Fonts.bold, fontSize: 20, color: Colors.dark },
+  codeModalHint: { marginTop: 8, fontFamily: Fonts.regular, fontSize: 13, lineHeight: 19, textAlign: 'center', color: '#64748B' },
+  codeInput: {
+    width: '100%',
+    height: 62,
+    marginTop: 20,
+    borderRadius: 16,
+    backgroundColor: '#F1F5F9',
+    textAlign: 'center',
+    fontFamily: Fonts.bold,
+    fontSize: 28,
+    letterSpacing: 12,
+    color: Colors.dark,
+  },
+  codeModalActions: { width: '100%', flexDirection: 'row', gap: 10, marginTop: 18 },
+  codeCancelButton: { flex: 1, height: 50, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: '#E2E8F0' },
+  codeCancelText: { fontFamily: Fonts.bold, fontSize: 14, color: '#475569' },
+  codeConfirmButton: { flex: 1, height: 50, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.primary },
+  codeConfirmText: { fontFamily: Fonts.bold, fontSize: 14, color: Colors.dark },
 });

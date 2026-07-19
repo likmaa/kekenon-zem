@@ -81,6 +81,7 @@ export type Ride = {
   recipient_name?: string;
   recipient_phone?: string;
   package_description?: string;
+  package_size?: 'small' | 'medium' | 'large';
   package_weight?: string;
   is_fragile?: boolean;
   /** Consigne passager (texte ou transcription vocale IA). */
@@ -136,7 +137,7 @@ export type DriverState = {
   declineRequest: (rideId?: string) => Promise<void>;
   signalArrival: () => Promise<void>;
   setPickupDone: () => Promise<void>;
-  completeRide: (distance_m?: number) => Promise<Ride | null>;
+  completeRide: (distance_m?: number, deliveryCode?: string) => Promise<Ride | null>;
   startStop: () => Promise<void>;
   endStop: () => Promise<void>;
   loadHistoryFromBackend: () => Promise<void>;
@@ -268,6 +269,7 @@ export function DriverProvider({ children }: { children: React.ReactNode }) {
       recipient_name: payload.recipient_name,
       recipient_phone: payload.recipient_phone,
       package_description: payload.package_description,
+      package_size: payload.package_size,
       package_weight: payload.package_weight,
       is_fragile: !!payload.is_fragile,
       riderVoiceNote: typeof payload.rider_voice_note === 'string' ? payload.rider_voice_note : undefined,
@@ -1038,7 +1040,7 @@ export function DriverProvider({ children }: { children: React.ReactNode }) {
     }
   }, [currentRide]);
 
-  const completeRide = useCallback(async (distance_m?: number) => {
+  const completeRide = useCallback(async (distance_m?: number, deliveryCode?: string) => {
     const ride = currentRide;
     if (!ride) return null;
 
@@ -1110,7 +1112,8 @@ export function DriverProvider({ children }: { children: React.ReactNode }) {
           Accept: 'application/json',
         },
         body: JSON.stringify({
-          distance_m: distance_m
+          distance_m: distance_m,
+          ...(deliveryCode ? { delivery_code: deliveryCode } : {}),
         })
       });
 

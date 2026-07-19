@@ -173,6 +173,11 @@ export function DriverRideDetails({
             <Text style={styles.microLabel}>Destinataire du colis</Text>
             <Text style={styles.deliveryName}>{ride.recipient_name || 'Non précisé'}</Text>
             {ride.package_description ? <Text style={styles.deliveryDescription}>{ride.package_description}</Text> : null}
+            <Text style={styles.deliveryMeta}>
+              taille {ride.package_size === 'small' ? 'petite' : ride.package_size === 'large' ? 'grande' : 'moyenne'}
+              {ride.package_weight ? ` · ${ride.package_weight} kg` : ''}
+              {ride.is_fragile ? ' · fragile' : ''}
+            </Text>
           </View>
           <TouchableOpacity style={styles.navigationButtonRound} onPress={onCallRecipient} disabled={!ride.recipient_phone}>
             <Ionicons name="call" size={18} color={Colors.dark} />
@@ -295,5 +300,6 @@ const styles = StyleSheet.create({
   },
   deliveryName: { marginTop: 2, fontFamily: Fonts.bold, fontSize: 15, color: Colors.white },
   deliveryDescription: { marginTop: 2, fontFamily: Fonts.regular, fontSize: 12, color: 'rgba(255,255,255,0.55)' },
+  deliveryMeta: { marginTop: 4, fontFamily: Fonts.medium, fontSize: 11, color: Colors.primary },
   navigationButtonRound: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.primary },
 });

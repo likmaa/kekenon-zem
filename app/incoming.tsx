@@ -241,6 +241,22 @@ export default function IncomingRideScreen() {
             )}
           </View>
 
+          {isLivraison ? (
+            <View style={styles.card}>
+              <View style={styles.noteHeader}>
+                <Ionicons name="cube" size={17} color={GOLD} />
+                <Text style={styles.noteTitle}>Colis à livrer</Text>
+              </View>
+              <Text style={styles.packageText}>{currentRide.package_description || 'Description non précisée'}</Text>
+              <Text style={styles.packageMeta}>
+                taille {currentRide.package_size === 'small' ? 'petite' : currentRide.package_size === 'large' ? 'grande' : 'moyenne'}
+                {currentRide.package_weight ? ` · ${currentRide.package_weight} kg` : ''}
+                {currentRide.is_fragile ? ' · fragile' : ''}
+              </Text>
+              <Text style={styles.packageRecipient}>destinataire : {currentRide.recipient_name || 'non précisé'}</Text>
+            </View>
+          ) : null}
+
           {/* Passager */}
           <View style={styles.card}>
             <View style={styles.riderRow}>
@@ -322,7 +338,9 @@ export default function IncomingRideScreen() {
               <Ionicons name="lock-closed" size={18} color="rgba(26,26,26,0.5)" />
             )}
             <Text style={[styles.goBtnText, !canGo && styles.goBtnTextDisabled]}>
-              {canGo ? 'Aller chercher mon client' : 'En attente du client'}
+              {canGo
+                ? (isLivraison ? 'Aller récupérer le colis' : 'Aller chercher mon client')
+                : 'En attente du client'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -421,6 +439,9 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   riderName: { fontFamily: Fonts.bold, fontSize: 16, color: '#FFFFFF' },
+  packageText: { marginTop: 8, fontFamily: Fonts.bold, fontSize: 15, color: '#FFFFFF' },
+  packageMeta: { marginTop: 4, fontFamily: Fonts.medium, fontSize: 12, color: GOLD },
+  packageRecipient: { marginTop: 8, fontFamily: Fonts.regular, fontSize: 12, color: MUTED },
   routeRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   dot: { width: 10, height: 10, borderRadius: 5, marginTop: 4 },
   routeLink: {
